@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  /* ── Reset & Base ── */
+  body { margin:0; padding:0; background:#f0f2f5; font-family:'Malgun Gothic','맑은 고딕',Arial,sans-serif; font-size:14px; color:#1a1a2e; }
+  .wrap { max-width:700px; margin:20px auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 18px rgba(0,0,0,0.12); }
+
+  /* ── Header ── */
+  .hd { background:linear-gradient(135deg,#1b2a6b 0%,#0f1f56 60%,#091540 100%); padding:26px 30px 22px; }
+  .hd-title { color:#fff; font-size:20px; font-weight:800; margin:0 0 6px; letter-spacing:-0.3px; }
+  .hd-sub { color:rgba(255,255,255,0.72); font-size:12px; margin-bottom:16px; }
+  .hd-chips { display:flex; gap:10px; flex-wrap:wrap; }
+  .chip { font-size:12px; font-weight:700; padding:4px 13px; border-radius:20px; }
+  .cp1 { background:rgba(231,76,60,0.22); color:#ff8080; border:1px solid rgba(231,76,60,0.4); }
+  .cp2 { background:rgba(230,126,34,0.22); color:#ffb060; border:1px solid rgba(230,126,34,0.4); }
+  .cp3 { background:rgba(241,196,15,0.22); color:#ffe066; border:1px solid rgba(241,196,15,0.4); }
+  .cp4 { background:rgba(46,204,113,0.18); color:#7eeaaa; border:1px solid rgba(46,204,113,0.35); }
+
+  /* ── 핵심 요약 ── */
+  .summary-box { background:#fffbea; border-left:4px solid #f39c12; margin:22px 24px 0; border-radius:0 8px 8px 0; padding:14px 18px; }
+  .summary-box .summary-head { font-size:13.5px; font-weight:800; color:#7d5a00; margin-bottom:9px; }
+  .summary-box ol { margin:0; padding-left:20px; }
+  .summary-box li { font-size:13px; color:#4a3800; line-height:1.7; padding:1px 0; }
+  .summary-box li b { color:#c0392b; }
+
+  /* ── Section Headers ── */
+  .sec-head { display:flex; align-items:center; gap:8px; padding:10px 24px; font-size:15px; font-weight:800; border-bottom:2px solid; }
+  .sh-p1 { color:#c0392b; border-color:#e74c3c; }
+  .sh-p2 { color:#ca6f1e; border-color:#e67e22; }
+  .sh-p3 { color:#9a7d0a; border-color:#f1c40f; }
+  .sh-p4 { color:#1e8449; border-color:#2ecc71; }
+
+  /* ── Mail Item Card ── */
+  .items-wrap { padding:12px 24px 20px; }
+  .mail-card { border:1px solid #e4e8f0; border-radius:8px; overflow:hidden; margin-bottom:12px; }
+  .card-meta { background:#f5f7fb; padding:7px 14px; font-size:11.5px; color:#666; display:flex; gap:10px; align-items:center; flex-wrap:wrap; border-bottom:1px solid #e4e8f0; }
+  .card-meta .d-badge { font-weight:800; padding:2px 9px; border-radius:10px; font-size:11px; }
+  .d0 { background:#fcd8d8; color:#c0392b; }
+  .d1 { background:#fde8cc; color:#ca6f1e; }
+  .d2 { background:#fef9c3; color:#9a7d0a; }
+  .d3 { background:#fef9c3; color:#9a7d0a; }
+  .d5 { background:#d5f5e3; color:#1e8449; }
+  .d7 { background:#d5f5e3; color:#1e8449; }
+  .card-meta .dt { color:#888; }
+  .card-meta .from { font-weight:700; color:#444; }
+  .card-body { padding:12px 14px; }
+  .card-title { font-size:14px; font-weight:800; color:#1a1a2e; margin-bottom:8px; line-height:1.5; }
+  .card-desc { font-size:12.5px; color:#4a4a4a; line-height:1.7; }
+  .card-desc .lbl { font-weight:800; }
+  .lbl-cause { color:#c0392b; }
+  .lbl-action { color:#1a5276; }
+  .hl { color:#c0392b; font-weight:700; }
+
+  /* ── P4 compact list ── */
+  .p4-list { padding:10px 24px 18px; }
+  .p4-list ul { margin:0; padding-left:18px; list-style:disc; }
+  .p4-list li { font-size:12.5px; color:#555; padding:3px 0; line-height:1.6; }
+  .p4-list li b { color:#333; }
+
+  /* ── Calendar box ── */
+  .cal-box { margin:4px 24px 20px; background:#eaf4fb; border:1px solid #aed6f1; border-radius:8px; padding:12px 16px; font-size:13px; color:#1a5276; }
+  .cal-box strong { display:block; font-size:14px; margin-bottom:5px; }
+  .cal-box .no-event { color:#5d8aa8; font-style:italic; }
+
+  /* ── Footer ── */
+  .ft { text-align:center; font-size:11px; color:#bbb; padding:14px 24px; border-top:1px solid #f0f2f5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ★ HEADER — 날짜·수신자·건수 요약 -->
+  <div class="hd">
+    <div class="hd-title">📋 일일 메일 브리핑</div>
+    <div class="hd-sub">{{DATE_RANGE}} 기준 &nbsp;|&nbsp; 수신자: 한이현</div>
+    <div class="hd-chips">
+      <span class="chip cp1">🔴 P1 즉시처리 {{P1_COUNT}}건</span>
+      <span class="chip cp2">🟠 P2 오늘 중 {{P2_COUNT}}건</span>
+      <span class="chip cp3">🟡 P3 이번주 {{P3_COUNT}}건</span>
+      <span class="chip cp4">🟢 P4 보관 다수</span>
+    </div>
+  </div>
+
+  <!-- ★ 오늘의 핵심 요약 -->
+  <div class="summary-box">
+    <div class="summary-head">📌 오늘의 핵심 요약</div>
+    <ol>
+      {{SUMMARY_ITEMS}}
+      <!-- 예시:
+      <li>이천 Hynix 히터 Fail → 점검 진행 중, <b>추이 모니터링 필요</b></li>
+      <li>604-1CH 커버 <b>긴급</b> 제작 요청 → 기구설계팀 납기 확인 당일 처리</li>
+      -->
+    </ol>
+  </div>
+
+  <!-- ★ P1 -->
+  <div style="margin-top:22px;">
+    <div class="sec-head sh-p1">🔴 P1 즉시처리 ({{P1_COUNT}}건)</div>
+    <div class="items-wrap">
+      {{P1_ITEMS}}
+      <!-- 카드 예시:
+      <div class="mail-card">
+        <div class="card-meta">
+          <span class="d-badge d0">D-0</span>
+          <span class="dt">2026-05-12 11:57</span>
+          <span class="from">기구설계팀 홍대영 수석</span>
+        </div>
+        <div class="card-body">
+          <div class="card-title">① MPT Cover 류 설계변경 도면</div>
+          <div class="card-desc">
+            <span class="lbl lbl-cause">원인:</span> YMTC향 MPT 커버류 조립성 개선 도면 공유 — Hook Up Box 홀 삭제·리브 높이 조정, Back Guide 홀 1mm 이동·직경 2mm 확대<br>
+            <span class="lbl lbl-action">조치:</span> 도면 검토 후 당일 승인 또는 수정 회신 (TO: han, yckim, yjjung)
+          </div>
+        </div>
+      </div>
+      -->
+    </div>
+  </div>
+
+  <!-- ★ P2 -->
+  <div>
+    <div class="sec-head sh-p2">🟠 P2 오늘 중 처리 ({{P2_COUNT}}건)</div>
+    <div class="items-wrap">
+      {{P2_ITEMS}}
+    </div>
+  </div>
+
+  <!-- ★ P3 -->
+  <div>
+    <div class="sec-head sh-p3">🟡 P3 이번주 처리 ({{P3_COUNT}}건)</div>
+    <div class="items-wrap">
+      {{P3_ITEMS}}
+    </div>
+  </div>
+
+  <!-- ★ P4 -->
+  <div>
+    <div class="sec-head sh-p4">🟢 P4 보관참조</div>
+    <div class="p4-list">
+      <ul>
+        {{P4_ITEMS}}
+        <!-- 예시:
+        <li><b>신동원</b> — 26.05.12_Hynix 진행 상황 공유 (특이사항 없음)</li>
+        -->
+      </ul>
+    </div>
+  </div>
+
+  <!-- ★ 캘린더 -->
+  <div class="cal-box">
+    <strong>📅 캘린더 조회 결과 ({{CAL_RANGE}})</strong>
+    {{CAL_CONTENT}}
+  </div>
+
+  <div class="ft">
+    자동 생성 이메일 브리핑 &nbsp;|&nbsp; {{TODAY}} &nbsp;|&nbsp; han@solardin.com<br>
+    ※ Armaranth10 POP3 계정 특성상 읽음 상태가 미반영된 메일이 포함될 수 있습니다.
+  </div>
+
+</div>
+</body>
+</html>
