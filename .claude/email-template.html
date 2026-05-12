@@ -4,184 +4,115 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!--
-  메일 브리핑 HTML 템플릿  ·  폰트: 맑은 고딕 10~12pt
-  ─────────────────────────────────────────────────────────────────
+  메일 브리핑 HTML 템플릿  (폰트: 맑은 고딕 10~12pt)
   사용법: 아래 {{변수}} 자리에 실제 값을 채워서 Gmail Draft를 생성합니다.
 
-  변수 목록
-    {{BRIEF_DATE}}       예) 2026년 5월 11일 (월)
-    {{QUERY_PERIOD}}     예) 2026-05-08 (금) 00:00 ~ 05-11 현재
-    {{TOTAL_COUNT}}      예) 22
-    {{P1_COUNT}}         예) 5
-    {{P2_COUNT}}         예) 4
-    {{P3_COUNT}}         예) 7
-    {{P4_COUNT}}         예) 6
-    {{P1_ROWS}}          P1 항목 HTML (ROW_TEMPLATE_P12 참고)
-    {{P2_ROWS}}          P2 항목 HTML
-    {{P3_ROWS}}          P3 항목 HTML
-    {{P4_ROWS}}          P4 항목 HTML
-    {{CALENDAR_TEXT}}    캘린더 조회 결과 텍스트
-    {{WEEKLY_SUMMARY}}   월요일 전용 지난주 P1·P2 요약
-                         (월요일 아닐 경우 WEEKLY SUMMARY tr 블록 전체 제거)
+  변수 목록:
+    {{BRIEF_DATE}}        예) 2026년 5월 11일 (월)
+    {{QUERY_PERIOD}}      예) 2026-05-08 (금) 00:00 ~ 05-11 현재
+    {{TOTAL_COUNT}}       예) 22
+    {{P1_COUNT}} / {{P2_COUNT}} / {{P3_COUNT}} / {{P4_COUNT}}
+    {{P1_ROWS}} ~ {{P4_ROWS}}   각 우선순위 항목 HTML (아래 ROW_TEMPLATE 참고)
+    {{CALENDAR_TEXT}}     캘린더 조회 결과 텍스트
+    {{WEEKLY_SUMMARY}}    월요일 전용: 지난주 P1·P2 요약 (평일에는 해당 섹션 tr 전체 제거)
 
-  ─────────────────────────────────────────────────────────────────
-  ROW_TEMPLATE_P12  (P1·P2 — 원인/조치 포함, 항목 사이 구분선 포함)
-  ─────────────────────────────────────────────────────────────────
+  ── ROW_TEMPLATE (P1·P2용 — 원인/조치 포함) ───────────────────────────
   <tr style="border-top:1px solid #f3f4f6;">
-    <td width="5" style="background:{{COLOR}};"></td>
+    <td width="4" style="background:{{PRIORITY_COLOR}};"></td>
     <td style="padding:12px 14px;">
-      <div style="font-family:'Malgun Gothic',Arial,sans-serif;font-size:12px;color:#6b7280;">
-        {{SENDER}}
-      </div>
-      <div style="font-family:'Malgun Gothic',Arial,sans-serif;font-size:14px;font-weight:700;color:#0f172a;margin-top:3px;line-height:1.4;">
-        {{SUBJECT}}
-      </div>
-      <div style="font-family:'Malgun Gothic',Arial,sans-serif;font-size:13px;color:#374151;margin-top:7px;line-height:1.7;">
-        <span style="color:#9ca3af;font-size:12px;">원인:</span> {{CAUSE}}
-        <br>
-        <span style="color:#9ca3af;font-size:12px;">조치:</span> <strong>{{ACTION}}</strong>
+      <div style="font-size:13px;color:#6b7280;font-family:'Malgun Gothic',sans-serif;">{{SENDER}}</div>
+      <div style="font-size:15px;font-weight:600;color:#0f172a;margin-top:3px;line-height:1.4;font-family:'Malgun Gothic',sans-serif;">{{SUBJECT}}</div>
+      <div style="font-size:13px;color:#374151;margin-top:7px;line-height:1.7;font-family:'Malgun Gothic',sans-serif;">
+        <span style="color:#9ca3af;font-weight:600;">원인:</span> {{CAUSE}}<br>
+        <span style="color:#9ca3af;font-weight:600;">조치:</span> {{ACTION}}
       </div>
     </td>
-    <td width="46" valign="top" style="padding:12px 12px 0 0;text-align:right;">
-      <span style="display:inline-block;background:{{COLOR}};color:#fff;
-                   font-family:'Malgun Gothic',Arial,sans-serif;font-size:11px;font-weight:700;
-                   padding:3px 8px;border-radius:4px;white-space:nowrap;">D-{{DDAY}}</span>
+    <td width="48" valign="top" style="padding:12px 12px 0 0;text-align:right;">
+      <span style="background:{{PRIORITY_COLOR}};color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;white-space:nowrap;font-family:'Malgun Gothic',sans-serif;">D-{{DDAY}}</span>
     </td>
   </tr>
 
-  ─────────────────────────────────────────────────────────────────
-  ROW_TEMPLATE_P34  (P3·P4 — 비고만)
-  ─────────────────────────────────────────────────────────────────
+  ── ROW_TEMPLATE (P3·P4용 — 비고만) ──────────────────────────────────
   <tr style="border-top:1px solid #f3f4f6;">
-    <td width="5" style="background:{{COLOR}};"></td>
+    <td width="4" style="background:{{PRIORITY_COLOR}};"></td>
     <td style="padding:11px 14px;">
-      <div style="font-family:'Malgun Gothic',Arial,sans-serif;font-size:12px;color:#6b7280;">
-        {{SENDER}}
-      </div>
-      <div style="font-family:'Malgun Gothic',Arial,sans-serif;font-size:13px;color:#0f172a;margin-top:3px;line-height:1.4;">
-        {{SUBJECT}}
-      </div>
-      <div style="font-family:'Malgun Gothic',Arial,sans-serif;font-size:12px;color:#6b7280;margin-top:4px;">
-        {{NOTE}}
-      </div>
+      <div style="font-size:13px;color:#6b7280;font-family:'Malgun Gothic',sans-serif;">{{SENDER}}</div>
+      <div style="font-size:14px;color:#0f172a;margin-top:3px;line-height:1.4;font-family:'Malgun Gothic',sans-serif;">{{SUBJECT}}</div>
+      <div style="font-size:13px;color:#6b7280;margin-top:4px;font-family:'Malgun Gothic',sans-serif;">{{NOTE}}</div>
     </td>
-    <td width="46" valign="top" style="padding:11px 12px 0 0;text-align:right;">
-      <span style="display:inline-block;background:#e5e7eb;color:#6b7280;
-                   font-family:'Malgun Gothic',Arial,sans-serif;font-size:11px;font-weight:600;
-                   padding:3px 8px;border-radius:4px;white-space:nowrap;">D-{{DDAY}}</span>
+    <td width="48" valign="top" style="padding:11px 12px 0 0;text-align:right;">
+      <span style="background:#e5e7eb;color:#6b7280;font-size:11px;font-weight:600;padding:3px 8px;border-radius:4px;white-space:nowrap;font-family:'Malgun Gothic',sans-serif;">D-{{DDAY}}</span>
     </td>
   </tr>
 -->
 </head>
-<body style="margin:0;padding:0;background:#eef0f4;
-             font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#eef0f4;font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;font-size:14px;">
 
-<table width="100%" cellpadding="0" cellspacing="0" border="0"
-       style="background:#eef0f4;padding:28px 0;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eef0f4;padding:28px 0;">
 <tr><td align="center">
 
-<!-- ══════════════════════════════════════════════ MAIN CARD -->
-<table width="620" cellpadding="0" cellspacing="0" border="0"
-       style="background:#ffffff;border-radius:10px;overflow:hidden;
-              box-shadow:0 2px 12px rgba(0,0,0,0.10);">
+<!-- ════════════════════════════════════════════════ MAIN CARD -->
+<table width="640" cellpadding="0" cellspacing="0" border="0"
+       style="background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,0.10);">
 
-  <!-- ── HEADER ─────────────────────────────────────────── -->
+  <!-- ── HEADER ──────────────────────────────────────── -->
   <tr>
-    <td style="background:#0f172a;padding:24px 28px 22px;">
+    <td style="background:#0f172a;padding:24px 30px 22px;">
       <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td>
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      color:#64748b;font-size:11px;letter-spacing:1.5px;
-                      text-transform:uppercase;font-weight:600;">
-            SOLARDIN · 메일 브리핑
-          </div>
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      color:#f1f5f9;font-size:20px;font-weight:700;
-                      margin-top:6px;letter-spacing:-0.3px;">
-            {{BRIEF_DATE}}
-          </div>
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      color:#475569;font-size:13px;margin-top:7px;">
-            조회기간: {{QUERY_PERIOD}} &nbsp;·&nbsp; 유효 {{TOTAL_COUNT}}건
-          </div>
+          <div style="color:#64748b;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;font-family:'Malgun Gothic',sans-serif;">SOLARDIN &nbsp;·&nbsp; 메일 브리핑</div>
+          <div style="color:#f1f5f9;font-size:22px;font-weight:700;margin-top:5px;letter-spacing:-0.5px;font-family:'Malgun Gothic',sans-serif;">{{BRIEF_DATE}}</div>
+          <div style="color:#475569;font-size:12px;margin-top:7px;font-family:'Malgun Gothic',sans-serif;">조회기간: {{QUERY_PERIOD}} &nbsp;·&nbsp; 유효 {{TOTAL_COUNT}}건</div>
         </td>
-        <td width="84" align="right" valign="bottom">
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      color:#334155;font-size:11px;text-align:right;margin-bottom:3px;">
-            자동 브리핑
-          </div>
-          <div style="background:#1e3a5f;color:#7dd3fc;
-                      font-family:'Malgun Gothic',Arial,sans-serif;
-                      font-size:11px;font-weight:700;
-                      padding:4px 10px;border-radius:4px;
-                      text-align:center;letter-spacing:0.5px;">
-            BRIEFING
-          </div>
+        <td width="80" align="right" valign="bottom">
+          <div style="background:#1e3a5f;color:#7dd3fc;font-size:12px;font-weight:700;padding:5px 11px;border-radius:5px;text-align:center;letter-spacing:0.5px;font-family:'Malgun Gothic',sans-serif;">BRIEFING</div>
         </td>
       </tr>
       </table>
     </td>
   </tr>
 
-  <!-- ── PRIORITY SUMMARY BAR ───────────────────────────── -->
+  <!-- ── PRIORITY SUMMARY BAR ────────────────────────── -->
   <tr>
-    <td style="background:#f8fafc;padding:14px 28px;border-bottom:1px solid #e2e8f0;">
-      <table width="100%" cellpadding="0" cellspacing="0">
+    <td style="background:#f8fafc;padding:14px 30px;border-bottom:1px solid #e2e8f0;">
+      <table width="100%" cellpadding="0" cellspacing="8">
       <tr>
         <!-- P1 -->
-        <td width="25%" style="padding-right:6px;">
+        <td width="25%">
           <table width="100%" cellpadding="0" cellspacing="0"
-                 style="background:#fff;border:1px solid #fecaca;border-radius:7px;">
+                 style="background:#fff;border:1px solid #fecaca;border-radius:7px;overflow:hidden;">
           <tr>
-            <td width="5" style="background:#dc2626;border-radius:7px 0 0 7px;"></td>
-            <td style="padding:9px 11px;">
-              <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                          font-size:20px;font-weight:800;color:#dc2626;line-height:1;">
-                {{P1_COUNT}}
-              </div>
-              <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                          font-size:11px;color:#dc2626;margin-top:3px;font-weight:700;">
-                🔴 즉시처리
-              </div>
+            <td width="5" style="background:#dc2626;"></td>
+            <td style="padding:10px 12px;">
+              <div style="font-size:22px;font-weight:800;color:#dc2626;line-height:1;font-family:'Malgun Gothic',sans-serif;">{{P1_COUNT}}</div>
+              <div style="font-size:11px;color:#dc2626;margin-top:3px;font-weight:600;font-family:'Malgun Gothic',sans-serif;">🔴 즉시처리</div>
             </td>
           </tr>
           </table>
         </td>
         <!-- P2 -->
-        <td width="25%" style="padding-right:6px;">
+        <td width="25%">
           <table width="100%" cellpadding="0" cellspacing="0"
-                 style="background:#fff;border:1px solid #fed7aa;border-radius:7px;">
+                 style="background:#fff;border:1px solid #fed7aa;border-radius:7px;overflow:hidden;">
           <tr>
-            <td width="5" style="background:#ea580c;border-radius:7px 0 0 7px;"></td>
-            <td style="padding:9px 11px;">
-              <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                          font-size:20px;font-weight:800;color:#ea580c;line-height:1;">
-                {{P2_COUNT}}
-              </div>
-              <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                          font-size:11px;color:#ea580c;margin-top:3px;font-weight:700;">
-                🟠 오늘 중
-              </div>
+            <td width="5" style="background:#ea580c;"></td>
+            <td style="padding:10px 12px;">
+              <div style="font-size:22px;font-weight:800;color:#ea580c;line-height:1;font-family:'Malgun Gothic',sans-serif;">{{P2_COUNT}}</div>
+              <div style="font-size:11px;color:#ea580c;margin-top:3px;font-weight:600;font-family:'Malgun Gothic',sans-serif;">🟠 오늘 중</div>
             </td>
           </tr>
           </table>
         </td>
         <!-- P3 -->
-        <td width="25%" style="padding-right:6px;">
+        <td width="25%">
           <table width="100%" cellpadding="0" cellspacing="0"
-                 style="background:#fff;border:1px solid #fde68a;border-radius:7px;">
+                 style="background:#fff;border:1px solid #fde68a;border-radius:7px;overflow:hidden;">
           <tr>
-            <td width="5" style="background:#ca8a04;border-radius:7px 0 0 7px;"></td>
-            <td style="padding:9px 11px;">
-              <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                          font-size:20px;font-weight:800;color:#ca8a04;line-height:1;">
-                {{P3_COUNT}}
-              </div>
-              <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                          font-size:11px;color:#ca8a04;margin-top:3px;font-weight:700;">
-                🟡 이번 주
-              </div>
+            <td width="5" style="background:#ca8a04;"></td>
+            <td style="padding:10px 12px;">
+              <div style="font-size:22px;font-weight:800;color:#ca8a04;line-height:1;font-family:'Malgun Gothic',sans-serif;">{{P3_COUNT}}</div>
+              <div style="font-size:11px;color:#ca8a04;margin-top:3px;font-weight:600;font-family:'Malgun Gothic',sans-serif;">🟡 이번 주</div>
             </td>
           </tr>
           </table>
@@ -189,18 +120,12 @@
         <!-- P4 -->
         <td width="25%">
           <table width="100%" cellpadding="0" cellspacing="0"
-                 style="background:#fff;border:1px solid #bbf7d0;border-radius:7px;">
+                 style="background:#fff;border:1px solid #bbf7d0;border-radius:7px;overflow:hidden;">
           <tr>
-            <td width="5" style="background:#16a34a;border-radius:7px 0 0 7px;"></td>
-            <td style="padding:9px 11px;">
-              <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                          font-size:20px;font-weight:800;color:#16a34a;line-height:1;">
-                {{P4_COUNT}}
-              </div>
-              <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                          font-size:11px;color:#16a34a;margin-top:3px;font-weight:700;">
-                🟢 보관참조
-              </div>
+            <td width="5" style="background:#16a34a;"></td>
+            <td style="padding:10px 12px;">
+              <div style="font-size:22px;font-weight:800;color:#16a34a;line-height:1;font-family:'Malgun Gothic',sans-serif;">{{P4_COUNT}}</div>
+              <div style="font-size:11px;color:#16a34a;margin-top:3px;font-weight:600;font-family:'Malgun Gothic',sans-serif;">🟢 보관참조</div>
             </td>
           </tr>
           </table>
@@ -210,22 +135,18 @@
     </td>
   </tr>
 
-  <!-- ══════════════════════════════════════════════ P1 SECTION -->
+  <!-- ══════════════════════════════════════════════════ P1 -->
   <tr>
-    <td style="padding:22px 28px 0;">
-      <!-- Section Header -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+    <td style="padding:22px 30px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:11px;">
       <tr>
         <td width="4" style="background:#dc2626;border-radius:2px;"></td>
-        <td style="padding-left:10px;">
-          <span style="font-family:'Malgun Gothic',Arial,sans-serif;
-                       font-size:14px;font-weight:700;color:#dc2626;">🔴 P1 즉시처리</span>
-          <span style="font-family:'Malgun Gothic',Arial,sans-serif;
-                       font-size:12px;color:#9ca3af;margin-left:8px;">기구설계팀 발신 · 한이현 직접 수신(To)</span>
+        <td style="padding-left:10px;vertical-align:middle;">
+          <span style="font-size:14px;font-weight:700;color:#dc2626;font-family:'Malgun Gothic',sans-serif;">🔴 P1 즉시처리</span>
+          <span style="font-size:12px;color:#9ca3af;margin-left:8px;font-family:'Malgun Gothic',sans-serif;">기구설계팀 발신 · 한이현 직접 수신(To)</span>
         </td>
       </tr>
       </table>
-      <!-- Items -->
       <table width="100%" cellpadding="0" cellspacing="0"
              style="border:1px solid #fecaca;border-radius:7px;overflow:hidden;">
         {{P1_ROWS}}
@@ -233,17 +154,15 @@
     </td>
   </tr>
 
-  <!-- ══════════════════════════════════════════════ P2 SECTION -->
+  <!-- ══════════════════════════════════════════════════ P2 -->
   <tr>
-    <td style="padding:18px 28px 0;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+    <td style="padding:20px 30px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:11px;">
       <tr>
         <td width="4" style="background:#ea580c;border-radius:2px;"></td>
-        <td style="padding-left:10px;">
-          <span style="font-family:'Malgun Gothic',Arial,sans-serif;
-                       font-size:14px;font-weight:700;color:#ea580c;">🟠 P2 오늘 중 처리</span>
-          <span style="font-family:'Malgun Gothic',Arial,sans-serif;
-                       font-size:12px;color:#9ca3af;margin-left:8px;">의사결정 필요 · 기구설계팀 관련 긴급 이슈</span>
+        <td style="padding-left:10px;vertical-align:middle;">
+          <span style="font-size:14px;font-weight:700;color:#ea580c;font-family:'Malgun Gothic',sans-serif;">🟠 P2 오늘 중 처리</span>
+          <span style="font-size:12px;color:#9ca3af;margin-left:8px;font-family:'Malgun Gothic',sans-serif;">의사결정 필요 · 긴급 이슈</span>
         </td>
       </tr>
       </table>
@@ -254,17 +173,15 @@
     </td>
   </tr>
 
-  <!-- ══════════════════════════════════════════════ P3 SECTION -->
+  <!-- ══════════════════════════════════════════════════ P3 -->
   <tr>
-    <td style="padding:18px 28px 0;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+    <td style="padding:20px 30px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:11px;">
       <tr>
         <td width="4" style="background:#ca8a04;border-radius:2px;"></td>
-        <td style="padding-left:10px;">
-          <span style="font-family:'Malgun Gothic',Arial,sans-serif;
-                       font-size:14px;font-weight:700;color:#ca8a04;">🟡 P3 이번주 처리</span>
-          <span style="font-family:'Malgun Gothic',Arial,sans-serif;
-                       font-size:12px;color:#9ca3af;margin-left:8px;">7일 내 기한 · 정보공유</span>
+        <td style="padding-left:10px;vertical-align:middle;">
+          <span style="font-size:14px;font-weight:700;color:#ca8a04;font-family:'Malgun Gothic',sans-serif;">🟡 P3 이번주 처리</span>
+          <span style="font-size:12px;color:#9ca3af;margin-left:8px;font-family:'Malgun Gothic',sans-serif;">7일 내 기한 · 정보공유</span>
         </td>
       </tr>
       </table>
@@ -275,17 +192,15 @@
     </td>
   </tr>
 
-  <!-- ══════════════════════════════════════════════ P4 SECTION -->
+  <!-- ══════════════════════════════════════════════════ P4 -->
   <tr>
-    <td style="padding:18px 28px 0;">
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+    <td style="padding:20px 30px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:11px;">
       <tr>
         <td width="4" style="background:#16a34a;border-radius:2px;"></td>
-        <td style="padding-left:10px;">
-          <span style="font-family:'Malgun Gothic',Arial,sans-serif;
-                       font-size:14px;font-weight:700;color:#16a34a;">🟢 P4 보관참조</span>
-          <span style="font-family:'Malgun Gothic',Arial,sans-serif;
-                       font-size:12px;color:#9ca3af;margin-left:8px;">기한 없음 · 공지·일일업무보고</span>
+        <td style="padding-left:10px;vertical-align:middle;">
+          <span style="font-size:14px;font-weight:700;color:#16a34a;font-family:'Malgun Gothic',sans-serif;">🟢 P4 보관참조</span>
+          <span style="font-size:12px;color:#9ca3af;margin-left:8px;font-family:'Malgun Gothic',sans-serif;">기한 없음 · 공지·일일업무보고</span>
         </td>
       </tr>
       </table>
@@ -296,68 +211,51 @@
     </td>
   </tr>
 
-  <!-- ══════════════════════════════════════════════ CALENDAR -->
+  <!-- ══════════════════════════════════════════════════ CALENDAR -->
   <tr>
-    <td style="padding:18px 28px 0;">
+    <td style="padding:20px 30px 0;">
       <table width="100%" cellpadding="0" cellspacing="0"
              style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:7px;">
       <tr>
-        <td style="padding:14px 16px;">
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:6px;">
-            📅 캘린더 조회 결과 (오늘 ~ 5일)
-          </div>
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      font-size:13px;color:#374151;line-height:1.8;">
-            {{CALENDAR_TEXT}}
-          </div>
+        <td style="padding:14px 17px;">
+          <div style="font-size:13px;font-weight:700;color:#1d4ed8;margin-bottom:6px;font-family:'Malgun Gothic',sans-serif;">📅 캘린더 조회 (오늘 ~ 5일)</div>
+          <div style="font-size:13px;color:#374151;line-height:1.8;font-family:'Malgun Gothic',sans-serif;">{{CALENDAR_TEXT}}</div>
         </td>
       </tr>
       </table>
     </td>
   </tr>
 
-  <!-- ══════════════════════════ MONDAY-ONLY: WEEKLY SUMMARY -->
-  <!-- 월요일 실행 시에만 아래 tr 포함. 다른 요일은 이 tr 전체 제거 -->
+  <!-- ══════════════════════════════ MONDAY-ONLY: WEEKLY SUMMARY -->
+  <!-- 월요일 실행 시에만 포함. 평일에는 이 <tr>...</tr> 블록 전체 제거 -->
   <tr>
-    <td style="padding:18px 28px 0;">
+    <td style="padding:18px 30px 0;">
       <table width="100%" cellpadding="0" cellspacing="0"
              style="background:#fafafa;border:1px solid #e5e7eb;border-radius:7px;">
       <tr>
-        <td style="padding:14px 16px;">
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;">
-            📋 지난주(월~금) P1·P2 처리 결과 요약
-          </div>
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      font-size:13px;color:#6b7280;line-height:1.8;">
-            {{WEEKLY_SUMMARY}}
-          </div>
+        <td style="padding:14px 17px;">
+          <div style="font-size:13px;font-weight:700;color:#374151;margin-bottom:6px;font-family:'Malgun Gothic',sans-serif;">📋 지난주 P1·P2 처리 결과 (월요일 한정)</div>
+          <div style="font-size:13px;color:#6b7280;line-height:1.8;font-family:'Malgun Gothic',sans-serif;">{{WEEKLY_SUMMARY}}</div>
         </td>
       </tr>
       </table>
     </td>
   </tr>
 
-  <!-- ══════════════════════════════════════════════ FOOTER -->
+  <!-- ══════════════════════════════════════════════════ FOOTER -->
   <tr>
-    <td style="padding:20px 28px 24px;">
-      <table width="100%" cellpadding="0" cellspacing="0">
+    <td style="padding:22px 30px 26px;">
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="border-top:1px solid #e5e7eb;">
       <tr>
-        <td style="border-top:1px solid #e5e7eb;padding-top:14px;">
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      font-size:12px;color:#9ca3af;line-height:1.9;">
+        <td style="padding-top:14px;">
+          <div style="font-size:12px;color:#9ca3af;line-height:1.9;font-family:'Malgun Gothic',sans-serif;">
             본 브리핑은 자동 생성되었습니다. &nbsp;·&nbsp; 조회 계정: Armaranth10 (POP3)<br>
             캘린더 이벤트 자동 등록 미실시 — 필요 일정은 수동 등록 바랍니다.
           </div>
         </td>
-        <td width="90" align="right" valign="bottom"
-            style="border-top:1px solid #e5e7eb;padding-top:14px;">
-          <div style="font-family:'Malgun Gothic',Arial,sans-serif;
-                      font-size:11px;color:#cbd5e1;text-align:right;line-height:1.6;">
-            Generated by<br>
-            <strong style="color:#94a3b8;">Claude Code</strong>
-          </div>
+        <td width="100" align="right" valign="bottom" style="padding-top:14px;">
+          <div style="font-size:11px;color:#cbd5e1;text-align:right;font-family:'Malgun Gothic',sans-serif;">Generated by<br><strong style="color:#94a3b8;">Claude Code</strong></div>
         </td>
       </tr>
       </table>
@@ -369,6 +267,5 @@
 
 </td></tr>
 </table>
-
 </body>
 </html>
