@@ -1,0 +1,346 @@
+{
+  "name": "Gmail 아침 브리핑 - 한대표님",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 6 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule-trigger",
+      "name": "평일 오전 6:30 트리거",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 대한민국 공휴일 목록 (연도별 확장 가능)\nconst KR_HOLIDAYS = [\n  // 2025\n  '2025-01-01', '2025-01-28', '2025-01-29', '2025-01-30',\n  '2025-03-01', '2025-05-05', '2025-05-06', '2025-06-06',\n  '2025-08-15', '2025-10-03', '2025-10-05', '2025-10-06', '2025-10-07', '2025-10-09',\n  '2025-12-25',\n  // 2026\n  '2026-01-01', '2026-02-16', '2026-02-17', '2026-02-18',\n  '2026-03-01', '2026-05-05', '2026-06-06',\n  '2026-08-17', '2026-09-24', '2026-09-25', '2026-09-26',\n  '2026-10-03', '2026-10-09', '2026-12-25'\n];\n\nconst now = new Date();\n// KST = UTC+9\nconst kstOffset = 9 * 60 * 60 * 1000;\nconst kstNow = new Date(now.getTime() + kstOffset);\n\nconst pad = (n) => String(n).padStart(2, '0');\nconst todayStr = `${kstNow.getUTCFullYear()}-${pad(kstNow.getUTCMonth()+1)}-${pad(kstNow.getUTCDate())}`;\nconst dayOfWeek = kstNow.getUTCDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat\n\n// 공휴일 또는 주말 체크\nconst isHoliday = KR_HOLIDAYS.includes(todayStr);\nconst isWeekend = dayOfWeek === 0 || dayOfWeek === 6;\n\nif (isHoliday || isWeekend) {\n  return [{ json: { skip: true, reason: isHoliday ? '공휴일' : '주말', today: todayStr } }];\n}\n\n// Gmail 조회 시작 시간 계산\nlet since;\nif (dayOfWeek === 1) {\n  // 월요일: 지난 금요일 00:00 KST\n  const friday = new Date(kstNow.getTime() - 3 * 24 * 60 * 60 * 1000);\n  since = `${friday.getUTCFullYear()}-${pad(friday.getUTCMonth()+1)}-${pad(friday.getUTCDate())}T00:00:00+09:00`;\n} else {\n  // 화~금: 어제 00:00 KST\n  const yesterday = new Date(kstNow.getTime() - 24 * 60 * 60 * 1000);\n  since = `${yesterday.getUTCFullYear()}-${pad(yesterday.getUTCMonth()+1)}-${pad(yesterday.getUTCDate())}T00:00:00+09:00`;\n}\n\nconst sinceUnix = Math.floor(new Date(since).getTime() / 1000);\n\nreturn [{\n  json: {\n    skip: false,\n    today: todayStr,\n    dayOfWeek,\n    isMonday: dayOfWeek === 1,\n    since,\n    sinceUnix,\n    nowKST: kstNow.toISOString()\n  }\n}];\n"
+      },
+      "id": "node-check-holiday",
+      "name": "공휴일/주말 체크 & 날짜 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-skip",
+              "leftValue": "={{ $json.skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-skip",
+      "name": "실행 여부 판단",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": false,
+        "limit": 30,
+        "filters": {
+          "q": "={{ 'after:' + $('공휴일/주말 체크 & 날짜 계산').item.json.sinceUnix + ' -from:no-reply -from:noreply -from:newsletter -from:notification -from:donotreply -from:mailer-daemon -label:category_promotions -label:category_updates' }}"
+        },
+        "options": {
+          "format": "full"
+        }
+      },
+      "id": "node-gmail-fetch",
+      "name": "Gmail 메일 조회",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [900, 400],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth2 - han@solardin.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const emails = $input.all();\nconst dateInfo = $('공휴일/주말 체크 & 날짜 계산').item.json;\n\n// 사내 발신자 목록\nconst INTERNAL_SENDERS = [\n  '김영철', '정예진', '홍대영',\n  'younghchul', 'yejin', 'daeyoung',\n  'solardin.com'\n];\n\nconst URGENT_KEYWORDS = ['긴급', '확인', '회신', '[긴급]', '[확인]', '[회신]'];\n\nconst EXCLUDE_PATTERNS = [\n  /no.?reply/i, /noreply/i, /newsletter/i, /notification/i,\n  /donotreply/i, /mailer.daemon/i, /auto.?reply/i, /자동발송/i,\n  /시스템/i\n];\n\nconst TARGET_EMAIL = 'han@solardin.com';\n\nfunction isExcluded(from) {\n  return EXCLUDE_PATTERNS.some(p => p.test(from));\n}\n\nfunction isInternalSender(from) {\n  return INTERNAL_SENDERS.some(s => from.toLowerCase().includes(s.toLowerCase()));\n}\n\nfunction hasUrgentKeyword(subject) {\n  return URGENT_KEYWORDS.some(k => subject.includes(k));\n}\n\nfunction isUnread(email) {\n  const labels = email.json.labelIds || [];\n  return labels.includes('UNREAD');\n}\n\nfunction isDirectRecipient(email) {\n  const to = (email.json.headers?.to || email.json.payload?.headers?.find(h => h.name === 'To')?.value || '').toLowerCase();\n  return to.includes(TARGET_EMAIL.toLowerCase());\n}\n\nfunction extractHeader(email, name) {\n  const headers = email.json.payload?.headers || [];\n  const h = headers.find(h => h.name.toLowerCase() === name.toLowerCase());\n  return h ? h.value : (email.json[name] || '');\n}\n\nfunction getDateDiff(dateStr) {\n  const emailDate = new Date(dateStr);\n  const now = new Date();\n  const diffMs = now - emailDate;\n  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));\n  return diffDays;\n}\n\nconst processed = [];\nconst seenSubjects = new Map();\n\nfor (const email of emails) {\n  const from = extractHeader(email, 'from');\n  const subject = extractHeader(email, 'subject') || '(제목없음)';\n  const date = extractHeader(email, 'date');\n  const messageId = email.json.id;\n\n  // 제외 필터\n  if (isExcluded(from)) continue;\n\n  const unread = isUnread(email);\n  const internal = isInternalSender(from);\n  const urgent = hasUrgentKeyword(subject);\n  const directTo = isDirectRecipient(email);\n\n  // 읽은 메일 필터: 사내 또는 긴급 키워드 없으면 제외\n  if (!unread && !internal && !urgent) continue;\n\n  // 반복 메일 중복 제거 (같은 제목 최신 1건만)\n  const subjectKey = subject.replace(/^(Re:|Fwd:|FW:|답장:|전달:)\\s*/gi, '').trim().toLowerCase();\n  if (seenSubjects.has(subjectKey)) continue;\n  seenSubjects.set(subjectKey, true);\n\n  // 우선순위 결정\n  let priority;\n  if (directTo && (internal || internal)) {\n    priority = 'P1';\n  } else if (directTo || urgent) {\n    priority = 'P2';\n  } else if (internal) {\n    priority = 'P3';\n  } else {\n    priority = 'P4';\n  }\n\n  // D-숫자 계산\n  const daysAgo = getDateDiff(date);\n  const dLabel = daysAgo === 0 ? 'D-0' : `D-${daysAgo}`;\n\n  // snippet (미리보기)\n  const snippet = email.json.snippet || '';\n\n  processed.push({\n    id: messageId,\n    from,\n    subject,\n    date,\n    dLabel,\n    priority,\n    unread,\n    snippet,\n    internal,\n    urgent,\n    directTo\n  });\n}\n\n// 우선순위 정렬\nconst ORDER = { P1: 0, P2: 1, P3: 2, P4: 3 };\nprocessed.sort((a, b) => ORDER[a.priority] - ORDER[b.priority]);\n\nreturn [{ json: { emails: processed, dateInfo, total: processed.length } }];\n"
+      },
+      "id": "node-filter-classify",
+      "name": "메일 필터링 & 우선순위 분류",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "getAll",
+        "calendarId": "primary",
+        "returnAll": false,
+        "limit": 20,
+        "options": {
+          "timeMin": "={{ new Date().toISOString() }}",
+          "timeMax": "={{ new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString() }}",
+          "singleEvents": true,
+          "orderBy": "startTime"
+        }
+      },
+      "id": "node-gcal-fetch",
+      "name": "Google Calendar 5일 일정 조회",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.1,
+      "position": [1120, 580],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GCAL_CREDENTIAL_ID",
+          "name": "Google Calendar OAuth2 - han@solardin.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailData = $('메일 필터링 & 우선순위 분류').item.json;\nconst calEvents = $('Google Calendar 5일 일정 조회').all();\n\nconst { emails, dateInfo } = emailData;\n\n// 캘린더 이벤트 정리\nconst events = calEvents.map(e => ({\n  title: e.json.summary || '(제목없음)',\n  start: e.json.start?.dateTime || e.json.start?.date || '',\n  id: e.json.id\n}));\n\n// P1/P2 subject 목록\nconst p1p2Subjects = emails\n  .filter(e => e.priority === 'P1' || e.priority === 'P2')\n  .map(e => e.subject.toLowerCase());\n\n// 캘린더-메일 중복 여부 확인\nconst calWithFlag = events.map(ev => {\n  const overlap = p1p2Subjects.some(s =>\n    ev.title.toLowerCase().includes(s.substring(0, 10)) ||\n    s.includes(ev.title.toLowerCase().substring(0, 10))\n  );\n  return { ...ev, overlapWithP1P2: overlap };\n});\n\nreturn [{ json: { emails, dateInfo, calEvents: calWithFlag } }];\n"
+      },
+      "id": "node-merge",
+      "name": "메일 + 캘린더 병합",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 480]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "당신은 한대표(han@solardin.com)의 개인 비서입니다.\n\n역할: 매일 아침 Gmail 브리핑 이메일을 작성합니다.\n\n## 출력 규칙\n\n1. 브리핑은 반드시 아래 섹션 순서를 유지합니다:\n   🔴 P1 즉시처리 → 🟠 P2 오늘 중 처리 → 🟡 P3 이번주 처리 → 🟢 P4 보관참조\n\n2. 각 항목 형식:\n   [발신자] 제목 | D-숫자 | 원인: ○○ / 조치: ○○\n   - P1, P2는 '원인 / 조치사항' 2줄 이내 필수\n   - P3, P4는 1줄 요약만\n\n3. 건수가 0인 섹션은 생략\n\n4. 캘린더 섹션 (📅 오늘~5일 일정):\n   - P1/P2와 겹치는 이벤트에는 ⚠️ 표시\n   - 날짜/시간 + 이벤트명만 표시\n\n5. 마지막에 한 줄 요약:\n   📊 총 N건 (P1: a / P2: b / P3: c / P4: d)\n\n6. 월요일인 경우 하단에 추가:\n   📋 지난주 P1/P2 처리 결과 요약 (입력 데이터에서 추론)\n\n7. 어조: 간결하고 비즈니스 전문적. 불필요한 인사말 없음.\n\n8. 출력은 Plain Text (이메일 body로 사용됨)"
+            },
+            {
+              "role": "user",
+              "content": "={{ '오늘 날짜: ' + $json.dateInfo.today + '\\n요일(1=월,5=금): ' + $json.dateInfo.dayOfWeek + '\\n\\n## 분류된 메일 목록 (JSON)\\n' + JSON.stringify($json.emails, null, 2) + '\\n\\n## 오늘~5일 캘린더\\n' + JSON.stringify($json.calEvents, null, 2) }}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.2
+        }
+      },
+      "id": "node-ai-summarize",
+      "name": "AI 브리핑 생성 (GPT-4o)",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.4,
+      "position": [1560, 480],
+      "credentials": {
+        "openAiApi": {
+          "id": "OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "toList": [
+          {
+            "email": "han@solardin.com"
+          }
+        ],
+        "subject": "={{ '🌅 [아침브리핑] ' + $('메일 + 캘린더 병합').item.json.dateInfo.today + ' | 총 ' + $('메일 + 캘린더 병합').item.json.emails.length + '건' }}",
+        "emailType": "text",
+        "message": "={{ $json.message.content }}",
+        "options": {}
+      },
+      "id": "node-send-email",
+      "name": "브리핑 메일 발송",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1780, 380],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GMAIL_CREDENTIAL_ID",
+          "name": "Gmail OAuth2 - han@solardin.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kapi.kakao.com/v2/api/talk/memo/default/send",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $env.KAKAO_ACCESS_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "template_object",
+              "value": "={{ JSON.stringify({ object_type: 'text', text: '🌅 [아침브리핑] ' + $('메일 + 캘린더 병합').item.json.dateInfo.today + '\\n\\n' + $('AI 브리핑 생성 (GPT-4o)').item.json.message.content.substring(0, 1000) + (($('AI 브리핑 생성 (GPT-4o)').item.json.message.content.length > 1000) ? '...\\n\\n(전체 내용은 이메일 확인)' : ''), link: { web_url: 'https://mail.google.com', mobile_web_url: 'https://mail.google.com' } }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-kakao",
+      "name": "카카오 나에게 보내기",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 540]
+    }
+  ],
+  "connections": {
+    "평일 오전 6:30 트리거": {
+      "main": [
+        [
+          {
+            "node": "공휴일/주말 체크 & 날짜 계산",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "공휴일/주말 체크 & 날짜 계산": {
+      "main": [
+        [
+          {
+            "node": "실행 여부 판단",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "실행 여부 판단": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Gmail 메일 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail 메일 조회": {
+      "main": [
+        [
+          {
+            "node": "메일 필터링 & 우선순위 분류",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Calendar 5일 일정 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메일 필터링 & 우선순위 분류": {
+      "main": [
+        [
+          {
+            "node": "메일 + 캘린더 병합",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar 5일 일정 조회": {
+      "main": [
+        [
+          {
+            "node": "메일 + 캘린더 병합",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "메일 + 캘린더 병합": {
+      "main": [
+        [
+          {
+            "node": "AI 브리핑 생성 (GPT-4o)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 브리핑 생성 (GPT-4o)": {
+      "main": [
+        [
+          {
+            "node": "브리핑 메일 발송",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "카카오 나에게 보내기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "브리핑"
+    },
+    {
+      "name": "Gmail"
+    },
+    {
+      "name": "자동화"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2026-05-14T00:00:00.000Z",
+  "versionId": "1"
+}
