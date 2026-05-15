@@ -37,13 +37,21 @@ Add the following to your Claude Code MCP settings (`~/.claude/settings.json` or
 
 ### 3. Obtain an Access Token
 
+**나에게 보내기** requires a user-level access token (OAuth 2.0 authorization code flow), not a client credentials token.
+
 ```bash
+# Step 1 — Open in browser to authorize (replace CLIENT_ID and REDIRECT_URI)
+https://kauth.kakao.com/oauth/authorize?client_id=<CLIENT_ID>&redirect_uri=<REDIRECT_URI>&response_type=code&scope=talk_message
+
+# Step 2 — Exchange the returned code for a token
 curl -X POST https://kauth.kakao.com/oauth/token \
-  -d "grant_type=client_credentials" \
-  -d "client_id=<your-rest-api-key>"
+  -d "grant_type=authorization_code" \
+  -d "client_id=<CLIENT_ID>" \
+  -d "redirect_uri=<REDIRECT_URI>" \
+  -d "code=<AUTHORIZATION_CODE>"
 ```
 
-Set the returned token as `KAKAO_ACCESS_TOKEN` in the MCP env block, or store it in a `.env` file (never commit credentials).
+Set the returned `access_token` as `KAKAO_ACCESS_TOKEN` in the MCP env block or a `.env` file (never commit credentials).
 
 ## Available Operations
 
@@ -51,15 +59,74 @@ Once connected, Claude Code can invoke these tools via the `kakao-play` MCP serv
 
 | Tool | Description |
 |------|-------------|
+| `send_to_me` | Send a message to the authenticated user's own KakaoTalk (나에게 보내기) |
 | `send_message` | Send a text message to a KakaoTalk channel |
 | `send_template` | Send a structured message using a KakaoTalk template |
 | `list_channels` | List accessible KakaoTalk channels |
 | `get_channel_info` | Retrieve metadata for a specific channel |
 | `upload_image` | Upload an image to use in messages |
 
+## 나에게 보내기 (Send to Me)
+
+Sends a message directly to the logged-in user's own KakaoTalk account.
+
+**API endpoint:** `POST https://kapi.kakao.com/v2/api/talk/memo/default/send`  
+**Required scope:** `talk_message`  
+**Required header:** `Authorization: Bearer <access_token>`
+
+### Text message payload
+
+```json
+{
+  "template_object": {
+    "object_type": "text",
+    "text": "배포가 완료되었습니다.",
+    "link": {
+      "web_url": "https://example.com",
+      "mobile_web_url": "https://example.com"
+    }
+  }
+}
+```
+
+### Feed message payload (image + text)
+
+```json
+{
+  "template_object": {
+    "object_type": "feed",
+    "content": {
+      "title": "빌드 성공",
+      "description": "모든 테스트가 통과했습니다.",
+      "image_url": "https://example.com/image.png",
+      "link": {
+        "web_url": "https://example.com"
+      }
+    }
+  }
+}
+```
+
+### curl example
+
+```bash
+curl -X POST https://kapi.kakao.com/v2/api/talk/memo/default/send \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'template_object={"object_type":"text","text":"배포 완료!","link":{"web_url":"https://example.com"}}'
+```
+
 ## Usage Examples
 
-### Send a simple message
+### 나에게 보내기
+
+```
+카카오톡으로 나에게 "배포 완료" 메시지 보내줘
+```
+
+Claude will call `send_to_me` with a text template.
+
+### Send a simple channel message
 
 ```
 카카오톡 채널에 "배포 완료" 메시지를 보내줘
