@@ -1,5 +1,5 @@
 ---
-name: email-briefing
+name: email-briefing-to-notion
 description: 매일 아침 Gmail·Google Calendar를 조회하여 우선순위를 분류하고 Notion에 이메일 브리핑 페이지를 자동 생성합니다. 평일(한국 공휴일 제외)에만 실행됩니다.
 license: MIT
 ---
