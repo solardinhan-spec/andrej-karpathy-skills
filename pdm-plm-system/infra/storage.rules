@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /drawings/{partNo}/{revision}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    match /backups/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.token.role == 'admin';
+      allow write: if false;
+    }
+  }
+}
