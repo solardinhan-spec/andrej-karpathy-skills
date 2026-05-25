@@ -1,116 +1,69 @@
 # 06. Cloud Functions 자동화 (이벤트 트리거 + Google Workspace 연동)
 
+> HTTP API(`exports.api`)와 동일한 `pdm-functions` 코드베이스에 둔다.
+> 트리거는 `src/triggers.js`에 정의하고 `index.js`에서 re-export 한다 (docs/03 참고).
+
 ## 6.1 Functions 프로젝트 초기화
 
-```bash
-mkdir pdm-functions && cd pdm-functions
-npm init -y
-npm install firebase-functions firebase-admin googleapis nodemailer
-npm install -D firebase-functions-test
-```
+HTTP API와 동일 프로젝트(`pdm-functions/`)를 사용하므로 의존성은 이미 설치되어 있다.
+추가로 Drive 백업이 필요하면 `googleapis`만 확인한다.
 
-## 6.2 도면 승인 트리거 → Gmail 알림 + Drive 백업
+## 6.2 도면 배포 트리거 → Gmail 알림 + Drive 백업
 
 ```javascript
-// functions/index.js
-const functions = require('firebase-functions/v2');
+// src/triggers.js
+const { onDocumentUpdated, onDocumentCreated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
 const { google } = require('googleapis');
 
-if (!admin.apps.length) {
-  admin.initializeApp();
-}
+if (!admin.apps.length) admin.initializeApp();
 
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
+const REGION = 'asia-northeast3';
 
 /**
- * 트리거 1: 도면 상태가 Released로 변경될 때
- * - 담당 부서 Gmail 알림 발송
+ * 트리거 1: 도면(dwgNo) 상태가 Released로 변경될 때
+ * - 담당자 + 검토자 2명 + 관리자에게 Gmail 알림
  * - Google Drive 승인 도면 폴더 자동 백업
  */
-exports.onDrawingReleased = functions.firestore.onDocumentUpdated(
-  'drawings/{drawingId}',
+exports.onDrawingReleased = onDocumentUpdated(
+  { document: 'drawings/{dwgNo}', region: REGION },
   async (event) => {
     const newData = event.data.after.data();
     const prevData = event.data.before.data();
+    if (newData.status !== 'Released' || prevData.status === 'Released') return null;
 
-    if (newData.status !== 'Released' || prevData.status === 'Released') {
-      return null; // Released로 변경된 시점만 처리
-    }
+    const { dwgNo, itemCode, revision, title, filePath, authors = [], reviewers = [] } = newData;
+    console.log(`[트리거] 도면 배포: ${dwgNo} (${itemCode}) Rev.${revision}`);
 
-    const { partNo, revision, approvedByName, filePath } = newData;
-
-    console.log(`[트리거] 도면 배포 완료: ${partNo} Rev.${revision}`);
-
-    // 관련 수신자 목록 조회 (부서 이메일 설정)
-    const recipientSnapshot = await db.collection('users')
-      .where('role', 'in', ['admin', 'reviewer'])
-      .get();
-
-    const recipients = recipientSnapshot.docs.map(d => d.data().email).filter(Boolean);
+    // 수신자: 담당자 + 검토자 + 관리자
+    const involvedUids = [...new Set([...authors, ...reviewers])];
+    const userDocs = await Promise.all(involvedUids.map(uid => db.collection('users').doc(uid).get()));
+    const adminSnap = await db.collection('users').where('role', '==', 'admin').get();
+    const recipients = [
+      ...userDocs.filter(d => d.exists).map(d => d.data().email),
+      ...adminSnap.docs.map(d => d.data().email)
+    ].filter(Boolean);
 
     await Promise.allSettled([
-      sendApprovalEmail(partNo, revision, approvedByName, recipients),
-      backupToDrive(partNo, revision, filePath)
+      sendApprovalEmail(dwgNo, itemCode, revision, title, recipients),
+      backupToDrive(dwgNo, revision, filePath)
     ]);
-
     return null;
   }
 );
 
 /**
- * 트리거 2: 새 Part 등록 시 설계팀장에게 알림
+ * 트리거 2: 신규 품목(itemCode) 등록 시 관리자 알림
  */
-exports.onNewPartCreated = functions.firestore.onDocumentCreated(
-  'parts/{partNo}',
+exports.onItemCreated = onDocumentCreated(
+  { document: 'items/{itemCode}', region: REGION },
   async (event) => {
-    const partData = event.data.data();
-    const { partNo, name, createdByName } = partData;
-
-    const managerSnapshot = await db.collection('users')
-      .where('role', '==', 'admin')
-      .limit(3)
-      .get();
-
-    const managerEmails = managerSnapshot.docs.map(d => d.data().email).filter(Boolean);
-
-    if (managerEmails.length > 0) {
-      await sendNewPartNotification(partNo, name, createdByName, managerEmails);
-    }
-
-    return null;
-  }
-);
-
-/**
- * 트리거 3: ECN 발행 시 영향받는 품목 설계자 알림
- */
-exports.onEcnCreated = functions.firestore.onDocumentCreated(
-  'ecn/{ecnNo}',
-  async (event) => {
-    const ecnData = event.data.data();
-    const { ecnNo, affectedParts, changeReason } = ecnData;
-
-    // 영향받는 Part들의 생성자 이메일 수집
-    const partDocs = await Promise.all(
-      affectedParts.map(pn => db.collection('parts').doc(pn).get())
-    );
-
-    const designerUids = [...new Set(
-      partDocs.filter(d => d.exists).map(d => d.data().createdBy)
-    )];
-
-    const userDocs = await Promise.all(
-      designerUids.map(uid => db.collection('users').doc(uid).get())
-    );
-
-    const emails = userDocs.filter(d => d.exists).map(d => d.data().email).filter(Boolean);
-
-    if (emails.length > 0) {
-      await sendEcnNotification(ecnNo, affectedParts, changeReason, emails);
-    }
-
+    const { itemCode, name } = event.data.data();
+    const adminSnap = await db.collection('users').where('role', '==', 'admin').limit(3).get();
+    const emails = adminSnap.docs.map(d => d.data().email).filter(Boolean);
+    if (emails.length) await sendNewItemNotification(itemCode, name, emails);
     return null;
   }
 );
@@ -128,75 +81,54 @@ async function getGmailClient() {
   return google.gmail({ version: 'v1', auth: authClient });
 }
 
-async function sendApprovalEmail(partNo, revision, approvedBy, recipients) {
+async function sendApprovalEmail(dwgNo, itemCode, revision, title, recipients) {
   if (!recipients.length) return;
 
-  const subject = `[PDM] 도면 배포 완료: ${partNo} Rev.${revision}`;
+  const subject = `[PDM] 도면 배포 완료: ${dwgNo} (${itemCode}) Rev.${revision}`;
   const body = `
     안녕하세요,
 
-    아래 도면이 최종 승인되어 배포(Released) 상태로 전환되었습니다.
+    아래 도면이 검토자 2명 전원 승인되어 배포(Released)되었습니다.
 
     ────────────────────────
-    품번: ${partNo}
+    도번: ${dwgNo}
+    품목코드: ${itemCode}
+    도면명: ${title}
     리비전: Rev.${revision}
-    승인자: ${approvedBy}
     배포 일시: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
     ────────────────────────
 
     PDM 시스템에서 최신 도면을 확인해 주세요.
-
     ※ 이 메일은 자동으로 발송된 알림입니다.
   `.trim();
 
   try {
     const gmail = await getGmailClient();
-    const message = createRawEmail(recipients, subject, body);
-
     await gmail.users.messages.send({
       userId: 'me',
-      requestBody: { raw: message }
+      requestBody: { raw: createRawEmail(recipients, subject, body) }
     });
-
-    console.log(`[Gmail] 알림 발송 완료 → ${recipients.join(', ')}`);
+    console.log(`[Gmail] 배포 알림 발송 → ${recipients.join(', ')}`);
   } catch (err) {
     console.error(`[Gmail] 발송 실패: ${err.message}`);
   }
 }
 
-async function sendNewPartNotification(partNo, name, createdBy, recipients) {
-  const subject = `[PDM] 신규 품목 등록: ${partNo}`;
-  const body = `신규 품번 ${partNo} (${name})이 ${createdBy}에 의해 등록되었습니다.`;
-
+async function sendNewItemNotification(itemCode, name, recipients) {
+  const subject = `[PDM] 신규 품목 등록: ${itemCode}`;
+  const body = `신규 품목 ${itemCode} (${name})이 등록되었습니다.`;
   try {
     const gmail = await getGmailClient();
-    const message = createRawEmail(recipients, subject, body);
-    await gmail.users.messages.send({ userId: 'me', requestBody: { raw: message } });
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: createRawEmail(recipients, subject, body) }
+    });
   } catch (err) {
     console.error(`[Gmail] 신규 품목 알림 실패: ${err.message}`);
   }
 }
 
-async function sendEcnNotification(ecnNo, affectedParts, reason, recipients) {
-  const subject = `[PDM] ECN 발행: ${ecnNo}`;
-  const body = `
-    ECN 번호: ${ecnNo}
-    영향 품번: ${affectedParts.join(', ')}
-    변경 사유: ${reason}
-
-    PDM 시스템에서 ECN 내용을 확인하고 필요한 조치를 취해 주세요.
-  `.trim();
-
-  try {
-    const gmail = await getGmailClient();
-    const message = createRawEmail(recipients, subject, body);
-    await gmail.users.messages.send({ userId: 'me', requestBody: { raw: message } });
-  } catch (err) {
-    console.error(`[Gmail] ECN 알림 실패: ${err.message}`);
-  }
-}
-
-async function backupToDrive(partNo, revision, filePath) {
+async function backupToDrive(dwgNo, revision, filePath) {
   try {
     const drive = google.drive({ version: 'v3' });
     const auth = new google.auth.GoogleAuth({
@@ -214,15 +146,15 @@ async function backupToDrive(partNo, revision, filePath) {
 
     const stream = file.createReadStream();
 
-    // Drive의 "승인 도면" 폴더에 업로드
+    // Drive의 "승인 도면" 폴더에 업로드 (DWG 원본)
     const driveResponse = await drive.files.create({
       requestBody: {
-        name: `${partNo}_REV_${revision}.pdf`,
+        name: `${dwgNo}_REV_${revision}.dwg`,
         parents: [process.env.DRIVE_FOLDER_ID || 'root'],
-        description: `PDM 자동 백업 - ${partNo} Rev.${revision}`
+        description: `PDM 자동 백업 - ${dwgNo} Rev.${revision}`
       },
       media: {
-        mimeType: 'application/pdf',
+        mimeType: 'application/acad',
         body: stream
       }
     });

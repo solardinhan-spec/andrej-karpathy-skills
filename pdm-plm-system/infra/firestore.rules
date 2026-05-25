@@ -14,10 +14,6 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() == 'admin';
     }
 
-    function isReviewer() {
-      return isAuthenticated() && getUserRole() in ['admin', 'reviewer'];
-    }
-
     function isDesigner() {
       return isAuthenticated() && getUserRole() in ['admin', 'reviewer', 'designer'];
     }
@@ -26,52 +22,45 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() in ['admin', 'reviewer', 'designer', 'viewer'];
     }
 
-    match /parts/{partNo} {
+    // 품목 마스터 (items) - itemCode 유일
+    match /items/{itemCode} {
       allow read: if isAnyUser();
-      allow create: if isDesigner()
-        && request.resource.data.keys().hasAll(['partNo', 'name', 'revision', 'status', 'createdBy'])
-        && request.resource.data.status == 'In Work';
-      allow update: if isDesigner()
-        && (request.resource.data.status != 'Obsolete' || isReviewer());
+      allow create, update: if isDesigner();
       allow delete: if false;
     }
 
-    match /drawings/{drawingId} {
+    // 도면 (drawings) - dwgNo 유일키. 상태 전환은 백엔드 트랜잭션 전용
+    match /drawings/{dwgNo} {
       allow read: if isAnyUser()
         && (getUserRole() != 'viewer' || resource.data.status == 'Released');
-      allow create: if isDesigner();
-      allow update: if
-        (request.resource.data.status == 'Released' && isReviewer())
-        || (request.resource.data.status == 'Obsolete' && isAdmin())
-        || isDesigner();
-      allow delete: if false;
+      allow write: if false; // 업로드/제출/승인 모두 백엔드 API 경유
+
+      match /revisions/{rev} {
+        allow read: if isAnyUser()
+          && (getUserRole() != 'viewer' || resource.data.status == 'Released');
+        allow write: if false;
+      }
     }
 
+    // BOM 구조 (bom) - itemCode 단위
     match /bom/{bomId} {
       allow read: if isAnyUser();
       allow write: if isDesigner();
       allow delete: if isAdmin();
     }
 
+    // 채번 시퀀스 - 클라이언트 직접 접근 차단
     match /sequences/{seqId} {
       allow read, write: if false;
     }
 
-    match /ecn/{ecnNo} {
-      allow read: if isAnyUser();
-      allow create: if isDesigner();
-      allow update: if isReviewer();
-      allow delete: if false;
-    }
-
+    // 사용자 프로필 - 관리자 1회 발급(백엔드 서비스 계정 쓰기)
     match /users/{userId} {
-      allow read: if isAuthenticated()
-        && (request.auth.uid == userId || isAdmin());
-      allow update: if isAuthenticated() && request.auth.uid == userId
-        && !('role' in request.resource.data.diff(resource.data).affectedKeys());
-      allow write: if isAdmin();
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if false;
     }
 
+    // 감사 로그 - 읽기 전용(관리자), 쓰기는 백엔드 전용
     match /audit_logs/{logId} {
       allow read: if isAdmin();
       allow write: if false;
