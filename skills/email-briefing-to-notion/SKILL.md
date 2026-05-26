@@ -15,24 +15,18 @@ description: 매일 아침 Gmail 업무 이메일을 P1~P4로 분류·요약하�
 
 ---
 
-## 0. 시간대 — KST 강제 적용
+## 0. 시간대 — KST(UTC+9) 강제 적용
 
-루틴은 UTC 또는 미국 시간대로 실행될 수 있다. **모든 날짜·시간은 KST(UTC+9) 기준으로만 계산한다.**
+모든 날짜·시간은 **KST(UTC+9)** 기준으로만 계산한다.
 
 ```
-today_kst     = 시스템 UTC 시각 + 9시간 → 해당 날짜
+today_kst     = 시스템 UTC 시각 + 9시간
 yesterday_kst = today_kst - 1일
 ```
 
-| 시스템 UTC | ❌ 잘못된 날짜 | ✅ KST 날짜 |
-|-----------|-------------|------------|
-| 2026-05-25 15:30 UTC | 05/25 | **05/26** (15:30+9h = 익일 00:30) |
-| 2026-05-25 00:00 UTC | 05/25 | **05/25** (00:00+9h = 당일 09:00) |
-| 2026-05-24 23:00 UTC | 05/24 | **05/25** (23:00+9h = 익일 08:00) |
-
-- **Notion 페이지 제목**: 반드시 `today_kst` 사용
-- **Gmail 쿼리 날짜**: `after:yesterday_kst` / `before:today_kst`
-- **시간 범위 2차 필터**: 검색 결과의 각 `date` 필드를 KST 변환 후 `yesterday_kst 18:00 ~ today_kst 09:00` 범위만 포함
+- **Notion 페이지 제목**: `today_kst` 기준
+- **Gmail 쿼리 날짜**: `after:yesterday_kst` / `before:(today_kst + 1일)`
+- **시간 범위 2차 필터**: 각 메일의 `date` 필드를 KST 변환 후 `yesterday_kst 18:00 ~ today_kst 09:00` 범위만 포함
 
 ---
 
@@ -52,7 +46,7 @@ Notion 상위 페이지 하위에 `today_kst` 제목 페이지가 이미 존재�
 ### 검색 쿼리
 ```
 in:inbox -is:spam -in:draft -in:sent -label:[Notion]
-after:yesterday_kst before:today_kst
+after:yesterday_kst before:(today_kst + 1일)
 ```
 - pageSize: 50
 - `-label:[Notion]` = 이미 처리된 이메일 제외
@@ -211,9 +205,8 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 
 Notion 페이지 생성 성공 후에만 실행.
 
-1. `list_labels`로 `[Notion]` 레이블 ID 확인 → `Label_2`
-2. P1·P2·P3·P4 이메일 각 message에 `label_message`로 `[Notion]` 부착
-3. ❌ 제외 이메일은 레이블 부착 안 함
+1. P1·P2·P3·P4 이메일 각 message에 `label_message`로 `Label_2` 부착
+2. ❌ 제외 이메일은 레이블 부착 안 함
 
 ---
 
