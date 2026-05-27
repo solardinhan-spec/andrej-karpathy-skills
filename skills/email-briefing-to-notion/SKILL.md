@@ -24,9 +24,12 @@ today_kst     = 시스템 UTC 시각 + 9시간
 yesterday_kst = today_kst - 1일
 ```
 
+**수집 범위 (고정값)**: `yesterday_kst 18:00 KST` ~ `today_kst 09:00 KST`
+
+> ⚠️ 이 시간은 **실행 시각과 무관하게 항상 고정**이다. 현재 시각 기준 슬라이딩 윈도우가 아니다.
+
 - **Notion 페이지 제목**: `today_kst` 기준
-- **Gmail 쿼리 날짜**: `after:yesterday_kst` / `before:(today_kst + 1일)`
-- **시간 범위 2차 필터**: 각 메일의 `date` 필드를 KST 변환 후 `yesterday_kst 18:00 ~ today_kst 09:00` 범위만 포함
+- **Gmail 쿼리 날짜**: `after:yesterday_kst` / `before:(today_kst + 1일)` — 날짜 단위 광범위 조회 후 시간 필터로 좁힘
 
 ---
 
@@ -51,11 +54,17 @@ after:yesterday_kst before:(today_kst + 1일)
 - pageSize: 50
 - `-label:[Notion]` = 이미 처리된 이메일 제외
 
+### 시간 범위 필터 (필수)
+Gmail 쿼리 결과에서 각 메일의 `date` 필드를 KST 변환 후 아래 기준으로 제외:
+- `yesterday_kst 18:00 KST` **이전** 메일 제외
+- `today_kst 09:00 KST` **이후** 메일 제외
+
 ### 조회 전략 (토큰 절약)
 1. `search_threads` — 제목·발신자·스니펫 전체 수집
-2. 스니펫+제목으로 1차 분류 (Step 3)
-3. **P1·P2만** `get_thread`로 본문 전체 조회
-4. P3·P4는 스니펫+제목으로만 요약
+2. 시간 범위 필터 적용
+3. 스니펫+제목으로 1차 분류 (Step 3)
+4. **P1·P2만** `get_thread`로 본문 전체 조회
+5. P3·P4는 스니펫+제목으로만 요약
 
 ### 컨텍스트 초과 시
 P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상단에 표기:
