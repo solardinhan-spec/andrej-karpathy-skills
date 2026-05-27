@@ -17,10 +17,17 @@ description: 매일 아침 Gmail 업무 이메일을 P1~P4로 분류·요약하�
 
 ## 0. 시간대 — KST(UTC+9) 강제 적용
 
-모든 날짜·시간은 **KST(UTC+9)** 기준으로만 계산한다.
+> ⚠️ **`currentDate` 컨텍스트 변수를 절대 사용하지 않는다.** 항상 아래 Bash 명령으로 실제 UTC 시각을 조회 후 KST를 직접 계산한다.
+
+**Step 0 필수 실행:**
+```bash
+TZ='Asia/Seoul' date '+%Y-%m-%d %H:%M KST'
+```
+
+위 명령 결과로 `today_kst` 와 `yesterday_kst` 를 확정한다.
 
 ```
-today_kst     = 시스템 UTC 시각 + 9시간
+today_kst     = 위 명령 출력의 날짜
 yesterday_kst = today_kst - 1일
 ```
 
