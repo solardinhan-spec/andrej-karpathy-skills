@@ -7,7 +7,7 @@ description: 매일 아침 Gmail 업무 이메일을 P1~P4로 분류·요약하�
 
 | 항목 | 값 |
 |------|----|
-| 회사 / 사용자 | Solardin Inc. — 한이현 (`han@solardin.com`, 기구설계팀) |
+| 회사 / 사용자 | Solardin Inc. — 한이현 (`han@solardin.com` / `d140@solardin.com`, 기구설계팀) |
 | 스케줄 | 매일 아침 (평일) |
 | Notion 상위 페이지 | `3643e986-a942-812e-b4e9-dca08f857e86` (📧 이메일 브리핑) |
 | Gmail 처리 레이블 | `[Notion]` (labelId: `Label_103`) |
@@ -41,22 +41,31 @@ Notion 상위 페이지 하위에 오늘 날짜 제목 페이지가 이미 존�
 
 ---
 
-## 2. Gmail 이메일 수집
+## 2. Gmail 이메일 수집 — 2패스 검색
 
-### 검색 쿼리
+> **Gmail 검색 규칙**: `label:` 연산자는 레이블 **표시이름(display name)** 사용.
+> `label:Label_79` ❌ → `label:현장업무보고` ✅
+> `label_message` API 호출 시에는 **ID** 사용: `Label_103`
+
+### 패스 1 — 현장업무보고 (P3/P4 전용)
+
 ```
-in:inbox -is:spam -in:draft -in:sent -label:[Notion]
+in:inbox label:현장업무보고 -label:[Notion]
 after:어제날짜 before:오늘날짜
 ```
-- `어제날짜` / `오늘날짜`: Step 0에서 확인한 날짜를 `YYYY/MM/DD` 형식으로 사용
-- pageSize: 50
-- `-label:[Notion]` = 이미 처리된 이메일 제외
+- `어제날짜` / `오늘날짜`: Step 0 날짜를 `YYYY/MM/DD` 형식으로 사용
+- 결과: 스니펫+제목만으로 P3/P4 분류 (get_thread 호출 없음)
+- 스니펫에 이슈·알람 키워드 있음 → P3, 없음 → P4
 
-### 조회 전략 (토큰 절약)
-1. `search_threads` — 제목·발신자·스니펫 전체 수집
-2. 스니펫+제목으로 1차 분류 (Step 3)
-3. **P1·P2만** `get_thread`로 본문 전체 조회
-4. P3·P4는 스니펫+제목으로만 요약
+### 패스 2 — 일반 업무 이메일 (P1/P2/P3/P4)
+
+```
+in:inbox -label:현장업무보고 -label:[Notion] -is:spam -in:draft -in:sent
+after:어제날짜 before:오늘날짜
+```
+- pageSize: 50
+- P1·P2만 `get_thread`로 본문 전체 조회
+- P3·P4는 스니펫+제목으로만 요약
 
 ### 컨텍스트 초과 시
 P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상단에 표기:
@@ -70,8 +79,19 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 
 모호한 경우 더 높은 우선순위로 분류한다.
 
+### Gmail 레이블 → 분류 힌트 (패스 2 빠른 판단용)
+
+| labelIds에 포함 | 의미 | 분류 힌트 |
+|----------------|------|-----------|
+| `Label_20` (기구설계팀) | 기구설계팀 발신 | TO에 d140 포함이면 P1 후보 |
+| `Label_22` (대표이사) | 대표이사 발신 | P1~P2 |
+| `Label_73` (보증팀) | 보증/품질 관련 | 이슈 여부로 P2~P3 |
+| `Label_40`~`Label_45` (구매자재팀) | 구매/납기 | 답변 필요 시 P2, 참고 P3 |
+| `Label_19`/`Label_59` (국내기술영업팀) | 영업팀 발신 | P2~P3 |
+| 사용자 레이블 없음 (`has:nouserlabels`) | 외부 서비스 | 제외 검토 |
+
 ### 🔴 P1 — 긴급 사항 (Critical)
-- TO에 `han@solardin.com`, `한이현` 직접 포함
+- TO/CC에 `d140@solardin.com`, `han@solardin.com`, `한이현` 직접 포함
 - 키워드: 요청, 확인 부탁, 검토 부탁, 긴급, 승인, 마감, 결정, 회신 요청, 한이현, 기구설계팀
 - 예외: 전체 공지사항
 - 4M 변경 승인, 결재 요청 문서
@@ -88,14 +108,14 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 
 ### 🟡 P3 — 일반 사항 (Medium)
 - 프로젝트 진행 상황·CC 참조 업무
-- 현장 일일보고 중 이슈 있는 것
+- 현장 일일보고(`label:현장업무보고`) 중 이슈 있는 것
 - 납품대장, 납기 조율, 출하 진행 상황
 - 기한 있는 관리·공지 (법정의무교육 등)
 
 > 예: `칠러납품대장_260522` / `601 공냉식 피팅 확인 요청` / `법정의무교육 기한 임박`
 
 ### 🟢 P4 — 일반 사항 (Low)
-- 현장 일일보고 `(YYMMDD_현장코드)` 중 특이사항 없음·완료 보고
+- 현장 일일보고(`label:현장업무보고`) 중 특이사항 없음·완료 보고
 - 이슈 없는 일일회의록·주간업무보고
 - 결재 완료 알림, 경조사·사내공지
 
@@ -106,14 +126,16 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 
 ---
 
-## 4. 현장 코드 참조
+## 4. 현장 코드 및 레이블 참조
 
-| 코드 | 현장 | 고객사 |
-|------|------|--------|
-| CHINA | 중국 | YMTC, XYXT |
-| MMS | 싱가포르 | Micron Singapore |
-| MMJ | 일본 | Micron Japan |
-| MMT | 대만 | Micron Taiwan |
+| 코드 | 현장 | 고객사 | Gmail 레이블 |
+|------|------|--------|-------------|
+| CHINA | 중국 | YMTC, XYXT | `현장업무보고/CHINA` (Label_83) |
+| MMS | 싱가포르 | Micron Singapore | `현장업무보고/MMS` (Label_82) |
+| MMJ | 일본 | Micron Japan | `현장업무보고/MMJ` (Label_80) |
+| MMT | 대만 | Micron Taiwan | `현장업무보고/MMT` (Label_81) |
+
+> 패스 1 결과의 `labelIds`에서 Label_80~83으로 현장 구분 가능 (별도 제목 파싱 불필요)
 
 ---
 
@@ -208,7 +230,7 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 Notion 페이지 생성 성공 후에만 실행.
 
 1. `list_labels`로 `[Notion]` 레이블 ID 확인 → `Label_103`
-2. P1·P2·P3·P4 이메일 각 message에 `label_message`로 `[Notion]` 부착
+2. 패스 1·패스 2 P1~P4 이메일 각 message에 `label_message`로 `[Notion]` 부착 (labelId: `Label_103`)
 3. ❌ 제외 이메일은 레이블 부착 안 함
 
 ---
