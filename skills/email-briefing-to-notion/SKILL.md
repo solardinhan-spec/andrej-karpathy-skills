@@ -8,19 +8,33 @@ description: 매일 아침 Gmail 업무 이메일을 P1~P4로 분류·요약하�
 | 항목 | 값 |
 |------|----|
 | 회사 / 사용자 | Solardin Inc. — 한이현 (`han@solardin.com`, 기구설계팀) |
-| 스케줄 | 매일 **06:30 한국시간 |
-| 대상 이메일 범위 | 전일 06:30 KST ~ 당일 06:30 한국시간 |
+| 스케줄 | 매일 아침 (평일) |
 | Notion 상위 페이지 | `3643e986-a942-812e-b4e9-dca08f857e86` (📧 이메일 브리핑) |
-| Gmail 처리 레이블 | `[Notion]` (labelId: `Label_2`) |
+| Gmail 처리 레이블 | `[Notion]` (labelId: `Label_103`) |
+
+---
+
+## 0. 날짜 확인 (필수 — 가장 먼저 실행)
+
+**시스템 컨텍스트의 날짜는 무시한다.** 반드시 아래 명령으로 실제 날짜를 확인한다.
+
+```bash
+TZ='Asia/Seoul' date '+%Y-%m-%d %A'
+```
+
+- `오늘` = 위 명령 결과의 날짜
+- `어제` = 오늘 - 1일
+
+토·일이면 **즉시 종료**.
 
 ---
 
 ## 1. 중복 확인
 
-Notion 상위 페이지 하위에 `today_kst` 제목 페이지가 이미 존재하면:
+Notion 상위 페이지 하위에 오늘 날짜 제목 페이지가 이미 존재하면:
 - 새 페이지를 만들지 않는다
 - Gmail에서 `[Notion]` 레이블 미부착 이메일만 추가 수집
-- 기존 페이지 하단에 `--- 추가 브리핑 (HH:MM KST) ---` 섹션으로 append
+- 기존 페이지 하단에 `--- 추가 브리핑 (HH:MM) ---` 섹션으로 append
 - 전날 노션 페이지를 확인하여 이어지는 내용이 있으면 연관 표시를 한다.
 
 존재하지 않으면 Step 2로 진행.
@@ -32,8 +46,9 @@ Notion 상위 페이지 하위에 `today_kst` 제목 페이지가 이미 존재�
 ### 검색 쿼리
 ```
 in:inbox -is:spam -in:draft -in:sent -label:[Notion]
-after:yesterday_kst before:today_kst
+after:어제날짜 before:오늘날짜
 ```
+- `어제날짜` / `오늘날짜`: Step 0에서 확인한 날짜를 `YYYY/MM/DD` 형식으로 사용
 - pageSize: 50
 - `-label:[Notion]` = 이미 처리된 이메일 제외
 
@@ -105,7 +120,7 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 ## 5. Notion 페이지 생성
 
 - **위치**: 상위 페이지 `3643e986-a942-812e-b4e9-dca08f857e86` 하위
-- **제목**: `YYYY.MM.DD (요일)` — today_kst(UTC/GMT+9) 기준, 예: `2026.05.26 (화)`
+- **제목**: `YYYY.MM.DD (요일)` — Step 0의 오늘 날짜 기준, 예: `2026.05.29 (금)`
 - **아이콘**: 📬
 
 ### 본문 템플릿
@@ -192,7 +207,7 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 
 Notion 페이지 생성 성공 후에만 실행.
 
-1. `list_labels`로 `[Notion]` 레이블 ID 확인 → `Label_2`
+1. `list_labels`로 `[Notion]` 레이블 ID 확인 → `Label_103`
 2. P1·P2·P3·P4 이메일 각 message에 `label_message`로 `[Notion]` 부착
 3. ❌ 제외 이메일은 레이블 부착 안 함
 
