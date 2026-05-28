@@ -9,7 +9,7 @@ description: 매일 아침 Gmail 업무 이메일을 P1~P4로 분류·요약하�
 |------|----|
 | 회사 / 사용자 | Solardin Inc. — 한이현 (`han@solardin.com`, 기구설계팀) |
 | 스케줄 | 매일 **09:00 KST** |
-| 대상 이메일 범위 | 전일 18:00 KST ~ 당일 09:00 KST |
+| 대상 이메일 범위 | 전일 00:00 KST ~ 당일 09:00 KST (전일 전체 + 오늘 오전) |
 | Notion 상위 페이지 | `3643e986-a942-812e-b4e9-dca08f857e86` (📧 이메일 브리핑) |
 | Gmail 처리 레이블 | `[Notion]` (labelId: `Label_2`) |
 
@@ -31,9 +31,10 @@ today_kst     = 위 명령 출력의 날짜
 yesterday_kst = today_kst - 1일
 ```
 
-**수집 범위 (고정값)**: `yesterday_kst 18:00 KST` ~ `today_kst 09:00 KST`
+**수집 범위 (고정값)**: `yesterday_kst 00:00 KST` ~ `today_kst 09:00 KST`
 
 > ⚠️ 이 시간은 **실행 시각과 무관하게 항상 고정**이다. 현재 시각 기준 슬라이딩 윈도우가 아니다.
+> `-label:[Notion]` 필터로 이전 실행에서 처리된 이메일은 자동 제외된다.
 
 - **Notion 페이지 제목**: `today_kst` 기준
 - **Gmail 쿼리 날짜**: `after:yesterday_kst` / `before:(today_kst + 1일)` — 날짜 단위 광범위 조회 후 시간 필터로 좁힘
@@ -63,7 +64,7 @@ after:yesterday_kst before:(today_kst + 1일)
 
 ### 시간 범위 필터 (필수)
 Gmail 쿼리 결과에서 각 메일의 `date` 필드를 KST 변환 후 아래 기준으로 제외:
-- `yesterday_kst 18:00 KST` **이전** 메일 제외
+- `yesterday_kst 00:00 KST` **이전** 메일 제외
 - `today_kst 09:00 KST` **이후** 메일 제외
 
 ### 조회 전략 (토큰 절약)
