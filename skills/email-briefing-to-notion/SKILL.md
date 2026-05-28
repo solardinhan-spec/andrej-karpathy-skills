@@ -9,7 +9,7 @@ description: 매일 아침 Gmail 업무 이메일을 P1~P4로 분류·요약하�
 |------|----|
 | 회사 / 사용자 | Solardin Inc. — 한이현 (`han@solardin.com`, 기구설계팀) |
 | 스케줄 | 매일 **09:00 KST** |
-| 대상 이메일 범위 | 전일 00:00 KST ~ 당일 09:00 KST (전일 전체 + 오늘 오전) |
+| 대상 이메일 범위 | 전일 00:00 KST ~ 실행 시각 KST |
 | Notion 상위 페이지 | `3643e986-a942-812e-b4e9-dca08f857e86` (📧 이메일 브리핑) |
 | Gmail 처리 레이블 | `[Notion]` (labelId: `Label_2`) |
 
@@ -17,27 +17,33 @@ description: 매일 아침 Gmail 업무 이메일을 P1~P4로 분류·요약하�
 
 ## 0. 시간대 — KST(UTC+9) 강제 적용
 
-> ⚠️ **`currentDate` 컨텍스트 변수를 절대 사용하지 않는다.** 항상 아래 Bash 명령으로 실제 UTC 시각을 조회 후 KST를 직접 계산한다.
+> ⚠️ **`currentDate` 컨텍스트 변수를 절대 사용하지 않는다.** 항상 아래 Bash 명령으로 실제 KST 시각을 조회한다.
 
 **Step 0 필수 실행:**
 ```bash
 TZ='Asia/Seoul' date '+%Y-%m-%d %H:%M KST'
 ```
 
-위 명령 결과로 `today_kst` 와 `yesterday_kst` 를 확정한다.
+위 명령 결과로 아래 변수를 확정한다.
 
 ```
-today_kst     = 위 명령 출력의 날짜
-yesterday_kst = today_kst - 1일
+today_kst       = 위 명령 출력의 날짜  (예: 2026-05-28)
+run_time_kst    = 위 명령 출력의 시각  (예: 09:41)
+yesterday_kst   = today_kst - 1일      (예: 2026-05-27)
 ```
 
-**수집 범위 (고정값)**: `yesterday_kst 00:00 KST` ~ `today_kst 09:00 KST`
+**수집 범위**: `yesterday_kst 00:00 KST` ~ `today_kst run_time_kst KST`
 
-> ⚠️ 이 시간은 **실행 시각과 무관하게 항상 고정**이다. 현재 시각 기준 슬라이딩 윈도우가 아니다.
+> ⚠️ 하한(`yesterday_kst 00:00`)은 고정값이다. 상한은 실행 시각이므로 재실행 시 새로 받은 이메일이 자동으로 추가된다.
 > `-label:[Notion]` 필터로 이전 실행에서 처리된 이메일은 자동 제외된다.
 
+**Gmail 쿼리용 날짜 계산 (Gmail은 YYYY/MM/DD 형식 요구):**
+```
+after_date  = yesterday_kst  → YYYY/MM/DD 형식  (예: 2026/05/27)
+before_date = today_kst + 1일 → YYYY/MM/DD 형식  (예: 2026/05/29)
+```
+
 - **Notion 페이지 제목**: `today_kst` 기준
-- **Gmail 쿼리 날짜**: `after:yesterday_kst` / `before:(today_kst + 1일)` — 날짜 단위 광범위 조회 후 시간 필터로 좁힘
 
 ---
 
@@ -57,15 +63,18 @@ Notion 상위 페이지 하위에 `today_kst` 제목 페이지가 이미 존재�
 ### 검색 쿼리
 ```
 in:inbox -is:spam -in:draft -in:sent -label:[Notion]
-after:yesterday_kst before:(today_kst + 1일)
+after:after_date before:before_date
 ```
+- `after_date`, `before_date`는 Step 0에서 계산한 값 (YYYY/MM/DD 형식)
 - pageSize: 50
-- `-label:[Notion]` = 이미 처리된 이메일 제외
+
+### 페이지네이션
+검색 결과가 50건이면 pageToken으로 다음 페이지를 추가 수집한다. 결과가 50건 미만이 될 때까지 반복한다.
 
 ### 시간 범위 필터 (필수)
-Gmail 쿼리 결과에서 각 메일의 `date` 필드를 KST 변환 후 아래 기준으로 제외:
+수집된 각 메일의 `date` 필드를 KST로 변환 후 아래 기준으로 제외:
 - `yesterday_kst 00:00 KST` **이전** 메일 제외
-- `today_kst 09:00 KST` **이후** 메일 제외
+- `today_kst run_time_kst KST` **이후** 메일 제외
 
 ### 조회 전략 (토큰 절약)
 1. `search_threads` — 제목·발신자·스니펫 전체 수집
@@ -91,22 +100,24 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 - 키워드: 요청, 확인 부탁, 검토 부탁, 긴급, 승인, 마감, 결정, 회신 요청
 - 4M 변경 승인, 결재 요청 문서
 
-> 예: `MPT 파트리스트 수정 요청 건` / `Amkor Technology 긴급 Swap 출하 요청` / `4M 변경 승인 요청서`
+> 예: `MPT 파트리스트 수정 요청 건` / `Amkor Technology 긴급 Swap 출하 요청` / `4M 변경 승인 요청서` / `601 공냉식 3Way Valve 도면 요청 (FW로 수신해도 TO에 포함 시 P1)`
 
 ### 🟠 P2 — 중요
 - 현장 장비 알람·이슈 (chiller 고장, OCR Alarm 등) — 모니터링·대응 필요
-- 외주업체 납기·일정 답변 필요 건
-- D-0 ~ D-1 마감
+- 외주업체 납기·일정 답변 필요 건, 공급사 품질 결함 레포트
+- D-7 이내 마감 기한 있는 건
 
-> 예: `(260525_MMJ) Comp2 inner check alarm 발생` / `파카코리아 솔밸브 전압 마킹 답변`
+> 예: `(260525_MMJ) Comp2 inner check alarm 발생` / `파카코리아 솔밸브 전압 마킹 답변` / `자스쿨 321R 솔밸브 이슈 레포트 (D-8 전량교환)` / `MPT Cover 긴급 발주건 (6/4 D-8)`
 
 ### 🟡 P3 — 일반
 - 프로젝트 진행 상황·CC 참조 업무
 - 현장 일일보고 중 이슈 있는 것
 - 납품대장, 납기 조율, 출하 진행 상황
+- 4M 변경 승인 관련 완료 보고·참조 이메일
+- 업무보고 (SOP, 품질 관리 양식 등)
 - 기한 있는 관리·공지 (법정의무교육 등)
 
-> 예: `칠러납품대장_260522` / `601 공냉식 피팅 확인 요청` / `법정의무교육 기한 임박`
+> 예: `칠러납품대장_260527` / `[업무보고] SOP 관리 대장 업데이트` / `4M 윌로 펌프 보증팀 검토 완료` / `MMS향 파트리스트 작성 요청 FW (CC 참조)`
 
 ### 🟢 P4 — 보관참조
 - 현장 일일보고 `(YYMMDD_현장코드)` 중 특이사항 없음·완료 보고
@@ -116,7 +127,7 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 > 예: `(260525_MMS) 특이사항 없음` / `주간업무보고 5월 3주차_정예진`
 
 ### ❌ 제외 (레이블 미부착)
-업무 무관 외부 서비스: Zapier(`learn@send.zapier.com`), Slack(`no-reply@email.slackhq.com`), make.com, n8n, GamsGo, Google 보안알림(`no-reply@accounts.google.com`) 등
+업무 무관 외부 서비스: Zapier(`learn@send.zapier.com`), Slack(`no-reply@email.slackhq.com`), make.com, n8n, GamsGo, Google 보안알림(`no-reply@accounts.google.com`), GitHub 알림(`noreply@github.com`) 등
 
 ---
 
@@ -134,7 +145,7 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 ## 5. Notion 페이지 생성
 
 - **위치**: 상위 페이지 `3643e986-a942-812e-b4e9-dca08f857e86` 하위
-- **제목**: `YYYY.MM.DD (요일)` — today_kst 기준, 예: `2026.05.26 (화)`
+- **제목**: `YYYY.MM.DD (요일)` — today_kst 기준, 예: `2026.05.28 (목)`
 - **아이콘**: 📬
 
 ### 본문 템플릿
@@ -222,7 +233,7 @@ P1 → P2 → P3 → P4 순으로 우선 처리하고, Notion 페이지 최상�
 
 Notion 페이지 생성 성공 후에만 실행.
 
-1. P1·P2·P3·P4 이메일 각 message에 `label_message`로 `Label_2` 부착
+1. P1·P2·P3·P4 이메일 각 thread에 `label_thread`로 `Label_2` 부착
 2. ❌ 제외 이메일은 레이블 부착 안 함
 
 ---
