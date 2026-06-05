@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리 가계부 — 디자인 미리보기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1A1410; font-family:'Noto Sans KR',sans-serif; padding:40px 20px; min-height:100vh; }
+h1 { color:#FAF8F3; font-size:22px; font-weight:800; margin-bottom:6px; text-align:center; }
+.subtitle { color:#7A6A5A; font-size:13px; text-align:center; margin-bottom:40px; }
+.label { color:#C0622A; font-size:11px; font-weight:700; letter-spacing:.15em; margin-bottom:10px; text-align:center; }
+
+/* phone shell */
+.phones { display:flex; gap:24px; flex-wrap:wrap; justify-content:center; }
+.phone-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.phone {
+  width:280px; background:#0D0A08; border-radius:36px;
+  padding:12px; box-shadow:0 32px 64px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08);
+  position:relative;
+}
+.notch { width:80px; height:20px; background:#0D0A08; border-radius:0 0 14px 14px; position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:10; }
+.screen { background:#F5F0E8; border-radius:26px; overflow:hidden; }
+
+/* header */
+.hdr { background:linear-gradient(135deg,#1A1410,#2E1E10); padding:22px 16px 18px; color:white; }
+.month-nav { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.arrow { background:rgba(255,255,255,.1); border:none; color:#A09080; font-size:14px; width:24px; height:24px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.month-label { font-size:12px; font-weight:600; color:#D0B8A0; }
+.couple { font-size:22px; font-weight:900; line-height:1.2; }
+.remain-box { background:rgba(95,138,110,.3); border:1px solid rgba(95,138,110,.5); border-radius:10px; padding:6px 10px; text-align:center; }
+.remain-label { font-size:9px; color:#A09080; margin-bottom:2px; }
+.remain-val { font-size:15px; font-weight:700; color:#7FD4A0; }
+.summary-row { display:flex; gap:5px; margin-top:14px; flex-wrap:wrap; }
+.sum-chip { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1); border-radius:8px; padding:6px 8px; flex:1; min-width:60px; }
+.sum-chip-label { font-size:9px; color:#806050; margin-bottom:2px; }
+.sum-chip-val { font-size:11px; font-weight:700; }
+
+/* body */
+.body { padding:12px; }
+.card { background:white; border-radius:14px; box-shadow:0 2px 8px rgba(26,20,16,.07); padding:13px; margin-bottom:10px; }
+.card-title { font-size:12px; font-weight:700; margin-bottom:10px; }
+.savings-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
+.sav-card { background:white; border-radius:12px; padding:10px; box-shadow:0 1px 6px rgba(26,20,16,.07); }
+.sav-label { font-size:9px; color:#9A8A7A; margin-bottom:4px; }
+.sav-val { font-size:13px; font-weight:700; margin-bottom:6px; }
+.bar-track { height:6px; background:#F0EBE3; border-radius:99px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:99px; }
+.bar-ok { background:#5F8A6E; }
+.bar-warn { background:#E8A060; }
+.bar-over { background:#D94040; }
+.bar-done { font-size:8px; color:#5F8A6E; text-align:right; margin-top:2px; }
+
+/* thermo items */
+.thermo { margin-bottom:8px; }
+.thermo-row { display:flex; justify-content:space-between; margin-bottom:3px; }
+.thermo-name { font-size:11px; }
+.thermo-val { font-size:10px; color:#9A8A7A; }
+
+/* expense list */
+.exp-item { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #F5F0E8; cursor:pointer; }
+.exp-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.exp-name { font-size:11px; font-weight:600; }
+.exp-sub { font-size:9px; color:#9A8A7A; }
+.exp-amt { font-size:12px; font-weight:700; color:#D94040; margin-left:auto; flex-shrink:0; }
+.edit-hint { font-size:8px; color:#C0D0C0; display:block; text-align:right; }
+
+/* bottom nav */
+.bnav { display:flex; background:white; border-top:1px solid #E0D5C8; padding:8px 0 10px; }
+.bnav-btn { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.bnav-icon { font-size:18px; line-height:1; }
+.bnav-label { font-size:8px; font-weight:600; }
+.bnav-btn.active .bnav-label { color:#C0622A; }
+.bnav-btn:not(.active) .bnav-label { color:#B8A898; }
+
+/* modal overlay */
+.modal-demo { background:white; border-radius:16px 16px 0 0; padding:16px; margin-top:-20px; position:relative; z-index:5; }
+.modal-title-row { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.modal-title { font-size:14px; font-weight:800; }
+.modal-close { font-size:18px; color:#9A8A7A; }
+.modal-field { margin-bottom:10px; }
+.modal-label { font-size:10px; font-weight:600; color:#7A6A5A; margin-bottom:4px; display:block; }
+.modal-input { width:100%; padding:8px 10px; border-radius:8px; border:1.5px solid #E0D5C8; font-size:13px; }
+.modal-btn { width:100%; padding:11px; border-radius:10px; border:none; background:#C0622A; color:white; font-size:13px; font-weight:700; }
+
+/* settings */
+.setting-section { margin-bottom:10px; }
+.setting-hdr { font-size:11px; font-weight:700; color:#C0622A; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #F0EBE3; }
+.setting-row { display:flex; align-items:center; justify-content:space-between; padding:6px 0; }
+.setting-name { font-size:11px; }
+.setting-val { font-size:11px; font-weight:600; color:#7A6A5A; }
+.setting-edit { font-size:9px; color:#C0622A; border:1px solid #C0622A; border-radius:4px; padding:2px 6px; }
+
+/* report */
+.chart-bar-group { display:flex; align-items:flex-end; gap:6px; height:70px; padding:0 4px; }
+.chart-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.chart-bar-pair { display:flex; gap:2px; align-items:flex-end; width:100%; }
+.cb-budget { background:#E0D5C8; border-radius:3px 3px 0 0; flex:1; }
+.cb-actual { border-radius:3px 3px 0 0; flex:1; }
+.chart-label { font-size:8px; color:#9A8A7A; }
+.pie-demo { display:flex; align-items:center; gap:12px; margin-top:6px; }
+.pie-circle { width:60px; height:60px; border-radius:50%; background:conic-gradient(#C0622A 0% 35%, #E8A060 35% 50%, #8B6FBE 50% 65%, #5F8A6E 65% 80%, #3A6FA8 80% 100%); flex-shrink:0; }
+.pie-legend { display:flex; flex-direction:column; gap:4px; }
+.pie-leg-item { display:flex; align-items:center; gap:5px; font-size:9px; color:#7A6A5A; }
+.pie-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* challenge */
+.egg-display { text-align:center; padding:14px 0 10px; }
+.egg-emoji { font-size:52px; display:block; margin-bottom:8px; }
+.egg-label { font-size:13px; font-weight:800; color:#C0622A; }
+.egg-sub { font-size:10px; color:#9A8A7A; }
+.streak-box { text-align:center; padding:12px; }
+.streak-num { font-size:36px; font-weight:900; color:#C0622A; line-height:1; }
+.streak-dots { display:flex; justify-content:center; gap:5px; margin-top:10px; }
+.streak-dot { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:10px; }
+.dot-hit { background:#C0622A; color:white; }
+.dot-miss { background:#F0EBE3; color:#B0A090; border:1px solid #E0D5C8; }
+
+/* jar */
+.jar-row { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.jar-item { text-align:center; }
+.jar-visual { width:50px; height:64px; margin:0 auto 4px; position:relative; }
+.jar-label { font-size:9px; font-weight:700; }
+.jar-pct { font-size:9px; color:#9A8A7A; }
+
+/* badge changes callout */
+.changes { background:#FAF8F3; border-radius:14px; padding:20px; max-width:780px; margin:0 auto 40px; }
+.changes h2 { font-size:16px; font-weight:800; margin-bottom:16px; color:#1A1410; }
+.change-item { display:flex; gap:10px; margin-bottom:12px; align-items:flex-start; }
+.change-badge { background:#C0622A; color:white; font-size:10px; font-weight:700; padding:2px 8px; border-radius:99px; flex-shrink:0; margin-top:1px; }
+.change-badge.new { background:#5F8A6E; }
+.change-badge.fix { background:#3A6FA8; }
+.change-text { font-size:13px; color:#5A4A3A; line-height:1.6; }
+
+.confirm-btn { display:block; margin:0 auto; padding:16px 48px; background:linear-gradient(135deg,#C0622A,#E8803A); color:white; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; box-shadow:0 6px 20px rgba(192,98,42,.4); }
+.confirm-note { text-align:center; color:#7A6A5A; font-size:12px; margin-top:12px; }
+</style>
+</head>
+<body>
+
+<h1>💑 우리 가계부 — 디자인 미리보기</h1>
+<p class="subtitle">인터뷰 기반 업데이트 내용 · 컨펌 후 적용됩니다</p>
+
+<!-- 변경사항 요약 -->
+<div class="changes">
+  <h2>📋 이번 업데이트 변경사항</h2>
+  <div class="change-item"><span class="change-badge fix">변경</span><span class="change-text"><strong>"변동지출 잔액"</strong> → <strong>"이번달 남은 금액"</strong> 으로 라벨 수정</span></div>
+  <div class="change-item"><span class="change-badge new">신규</span><span class="change-text"><strong>← 2026년 5월 →</strong> 월 전환 화살표 — 홈/입력/리포트/챌린지 전체 동기화</span></div>
+  <div class="change-item"><span class="change-badge new">신규</span><span class="change-text"><strong>⚙️ 설정 탭</strong> 추가 — 고정지출 항목 추가/수정/삭제, 수입·저축·용돈 모두 수정 가능</span></div>
+  <div class="change-item"><span class="change-badge new">신규</span><span class="change-text"><strong>총수입 / 고정지출 / 저축+투자 / 용돈+예비금 칩 탭</strong> → 수정 모달 팝업</span></div>
+  <div class="change-item"><span class="change-badge new">신규</span><span class="change-text"><strong>지출 내역 탭</strong> → 수정·삭제 모달 팝업</span></div>
+  <div class="change-item"><span class="change-badge fix">변경</span><span class="change-text">바텀 탭 4개 → <strong>5개</strong> (홈 / 입력 / 리포트 / 챌린지 / ⚙️설정)</span></div>
+  <div class="change-item"><span class="change-badge fix">변경</span><span class="change-text"><strong>5월 실데이터</strong> 반영 (샘플 → 실제 지출 항목)</span></div>
+</div>
+
+<div class="phones">
+
+  <!-- ① 홈 화면 -->
+  <div class="phone-wrap">
+    <div class="label">🏠 홈 — 월 전환 + 이번달 남은 금액</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="hdr">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="month-nav">
+                <button class="arrow">‹</button>
+                <span class="month-label">2026년 5월</span>
+                <button class="arrow">›</button>
+              </div>
+              <div class="couple">이현 <span style="color:#C0622A">❤️</span> 혜원</div>
+            </div>
+            <div class="remain-box">
+              <div class="remain-label">이번달 남은 금액</div>
+              <div class="remain-val">120,330원</div>
+            </div>
+          </div>
+          <div class="summary-row">
+            <div class="sum-chip"><div class="sum-chip-label">총수입 ✏️</div><div class="sum-chip-val" style="color:#7FD4A0">3,605,139</div></div>
+            <div class="sum-chip"><div class="sum-chip-label">고정지출 ✏️</div><div class="sum-chip-val" style="color:#E8A060">2,094,809</div></div>
+            <div class="sum-chip"><div class="sum-chip-label">저축+투자 ✏️</div><div class="sum-chip-val" style="color:#8DB4E8">800,000</div></div>
+            <div class="sum-chip"><div class="sum-chip-label">용돈+예비 ✏️</div><div class="sum-chip-val" style="color:#D4B8E8">500,000</div></div>
+          </div>
+        </div>
+        <div class="body">
+          <div class="savings-row">
+            <div class="sav-card"><div class="sav-label">💚 저축</div><div class="sav-val">500,000원</div><div class="bar-track"><div class="bar-fill bar-ok" style="width:100%"></div></div><div class="bar-done">✓ 달성!</div></div>
+            <div class="sav-card"><div class="sav-label">📈 투자</div><div class="sav-val">300,000원</div><div class="bar-track"><div class="bar-fill bar-ok" style="width:100%"></div></div><div class="bar-done">✓ 달성!</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">🌡️ 변동지출 예산 <span style="float:right;font-size:10px;color:#9A8A7A;font-weight:400">90,000 / 210,330</span></div>
+            <div class="thermo"><div class="thermo-row"><span class="thermo-name">🍚 식비</span><span class="thermo-val">61,000 / 80,000</span></div><div class="bar-track"><div class="bar-fill bar-ok" style="width:76%"></div></div></div>
+            <div class="thermo"><div class="thermo-row"><span class="thermo-name">☕ 카페</span><span class="thermo-val">21,600 / 30,000</span></div><div class="bar-track"><div class="bar-fill bar-ok" style="width:72%"></div></div></div>
+            <div class="thermo"><div class="thermo-row"><span class="thermo-name">🛍️ 쇼핑</span><span class="thermo-val">50,400 / 40,000</span></div><div class="bar-track"><div class="bar-fill bar-over" style="width:100%"></div></div><div style="font-size:8px;color:#D94040">⚠️ 예산 초과!</div></div>
+            <div class="thermo"><div class="thermo-row"><span class="thermo-name">💊 의료</span><span class="thermo-val">15,000 / 15,000</span></div><div class="bar-track"><div class="bar-fill bar-warn" style="width:100%"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">📅 최근 지출 <span style="font-size:9px;color:#C0D0C0;font-weight:400">(탭해서 수정)</span></div>
+            <div class="exp-item"><div class="exp-icon" style="background:#C0622A20">🍚</div><div><div class="exp-name">마트 장보기</div><div class="exp-sub">05/30 · 혜원</div></div><div class="exp-amt">-25,000<span class="edit-hint">탭 수정</span></div></div>
+            <div class="exp-item"><div class="exp-icon" style="background:#E8A06020">☕</div><div><div class="exp-name">메가커피</div><div class="exp-sub">05/29 · 이현</div></div><div class="exp-amt">-4,200<span class="edit-hint">탭 수정</span></div></div>
+            <div class="exp-item"><div class="exp-icon" style="background:#D9404020">💊</div><div><div class="exp-name">약국</div><div class="exp-sub">05/26 · 혜원</div></div><div class="exp-amt">-15,000<span class="edit-hint">탭 수정</span></div></div>
+          </div>
+        </div>
+        <div class="bnav">
+          <div class="bnav-btn active"><div class="bnav-icon">🏠</div><div class="bnav-label">홈</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">✏️</div><div class="bnav-label">입력</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">📊</div><div class="bnav-label">리포트</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">🏆</div><div class="bnav-label">챌린지</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">⚙️</div><div class="bnav-label">설정</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 수정 모달 -->
+  <div class="phone-wrap">
+    <div class="label">✏️ 수입 수정 모달 (카드 탭 시)</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="hdr" style="opacity:.4">
+          <div class="month-nav"><span class="month-label">2026년 5월</span></div>
+          <div class="couple">이현 ❤️ 혜원</div>
+        </div>
+        <div style="background:rgba(0,0,0,0.45);height:80px;margin-top:-4px"></div>
+        <div class="modal-demo">
+          <div class="modal-title-row"><span class="modal-title">💰 수입 수정</span><span class="modal-close">✕</span></div>
+          <div class="modal-field"><label class="modal-label">이현 월급</label><input class="modal-input" value="3,388,000" /></div>
+          <div class="modal-field"><label class="modal-label">혜원 수입</label><input class="modal-input" value="217,139" /></div>
+          <button class="modal-btn">저장하기</button>
+          <div style="margin-top:20px">
+            <div style="font-size:11px;font-weight:700;color:#9A8A7A;margin-bottom:8px">고정지출 상세 (탭 시)</div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F5F0E8;font-size:11px"><span>차량 할부</span><span style="font-weight:600">350,000</span></div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F5F0E8;font-size:11px"><span>KB손보</span><span style="font-weight:600">159,000</span></div>
+            <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:11px"><span>생명보험</span><span style="font-weight:600">120,000</span></div>
+            <p style="font-size:10px;color:#9A8A7A;text-align:center;margin-top:8px">수정은 ⚙️ 설정 탭에서</p>
+          </div>
+        </div>
+        <div class="bnav">
+          <div class="bnav-btn active"><div class="bnav-icon">🏠</div><div class="bnav-label">홈</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">✏️</div><div class="bnav-label">입력</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">📊</div><div class="bnav-label">리포트</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">🏆</div><div class="bnav-label">챌린지</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">⚙️</div><div class="bnav-label">설정</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 설정 탭 -->
+  <div class="phone-wrap">
+    <div class="label">⚙️ 설정 탭 (신규)</div>
+    <div class="phone">
+      <div class="screen">
+        <div style="padding:18px 14px 0">
+          <p style="font-size:10px;color:#9A8A7A;margin-bottom:3px">우리 가계부</p>
+          <p style="font-size:18px;font-weight:800;margin-bottom:12px">⚙️ 설정</p>
+          <!-- 예산 요약 -->
+          <div style="background:linear-gradient(135deg,#1A1410,#2E1E10);border-radius:12px;padding:12px;margin-bottom:10px;color:white">
+            <p style="font-size:9px;color:#A09080;margin-bottom:6px">현재 예산 구조</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div><p style="font-size:9px;color:#806050">총수입</p><p style="font-size:12px;font-weight:700;color:#7FD4A0">3,605,139</p></div>
+              <div><p style="font-size:9px;color:#806050">고정지출</p><p style="font-size:12px;font-weight:700;color:#E8A060">2,094,809</p></div>
+              <div><p style="font-size:9px;color:#806050">저축+투자</p><p style="font-size:12px;font-weight:700;color:#8DB4E8">800,000</p></div>
+              <div><p style="font-size:9px;color:#806050">변동예산</p><p style="font-size:12px;font-weight:700;color:#F5D080">210,330</p></div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:0 14px;overflow-y:auto;max-height:280px">
+          <div class="card" style="margin-bottom:8px">
+            <div class="setting-hdr">💰 수입</div>
+            <div class="setting-row"><span class="setting-name">이현 월급</span><span class="setting-val">3,388,000원</span></div>
+            <div class="setting-row"><span class="setting-name">혜원 수입</span><span class="setting-val">217,139원</span></div>
+          </div>
+          <div class="card" style="margin-bottom:8px">
+            <div class="setting-hdr">📋 고정지출 <span style="float:right;font-size:9px;background:#FFF0E8;color:#C0622A;padding:2px 6px;border-radius:4px">합계 2,094,809</span></div>
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:5px;align-items:center;margin-bottom:5px">
+              <span style="font-size:10px;background:#F5F0E8;padding:5px 7px;border-radius:6px">차량 할부</span>
+              <span style="font-size:10px;font-weight:600;background:#F5F0E8;padding:5px 7px;border-radius:6px">350,000</span>
+              <span style="font-size:9px;color:#D94040;background:#FFF0F0;padding:5px 6px;border-radius:6px">삭제</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr auto auto;gap:5px;align-items:center;margin-bottom:5px">
+              <span style="font-size:10px;background:#F5F0E8;padding:5px 7px;border-radius:6px">KB손보</span>
+              <span style="font-size:10px;font-weight:600;background:#F5F0E8;padding:5px 7px;border-radius:6px">159,000</span>
+              <span style="font-size:9px;color:#D94040;background:#FFF0F0;padding:5px 6px;border-radius:6px">삭제</span>
+            </div>
+            <div style="border:1.5px dashed #E0D5C8;border-radius:8px;padding:7px;text-align:center;font-size:10px;color:#9A8A7A;margin-top:6px">+ 항목 추가</div>
+          </div>
+        </div>
+        <div style="padding:8px 14px">
+          <button style="width:100%;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#C0622A,#E8803A);color:white;font-size:13px;font-weight:700;font-family:inherit">전체 저장하기 💾</button>
+        </div>
+        <div class="bnav">
+          <div class="bnav-btn"><div class="bnav-icon">🏠</div><div class="bnav-label">홈</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">✏️</div><div class="bnav-label">입력</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">📊</div><div class="bnav-label">리포트</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">🏆</div><div class="bnav-label">챌린지</div></div>
+          <div class="bnav-btn active"><div class="bnav-icon">⚙️</div><div class="bnav-label">설정</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 리포트 -->
+  <div class="phone-wrap">
+    <div class="label">📊 리포트 — 월별 자동 반영</div>
+    <div class="phone">
+      <div class="screen">
+        <div style="padding:18px 14px 0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+            <button class="arrow" style="background:#F0EBE3">‹</button>
+            <span style="font-size:12px;font-weight:600;color:#7A6A5A">2026년 5월</span>
+            <button class="arrow" style="background:#F0EBE3">›</button>
+          </div>
+          <p style="font-size:18px;font-weight:800;margin-bottom:12px">📊 월별 리포트</p>
+        </div>
+        <div style="padding:0 14px;overflow-y:auto;max-height:320px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <div class="sav-card"><div class="sav-label">총 변동지출</div><div class="sav-val" style="color:#1A1410">90,000원</div><div style="font-size:9px;color:#5F8A6E">예산의 43% 사용</div></div>
+            <div class="sav-card"><div class="sav-label">절약 금액</div><div class="sav-val" style="color:#5F8A6E">120,330원</div><div style="font-size:9px;color:#5F8A6E">잔액 있음 🎉</div></div>
+          </div>
+          <div class="card" style="margin-bottom:8px">
+            <div class="card-title">예산 vs 실지출</div>
+            <div class="chart-bar-group">
+              <div class="chart-bar-wrap"><div class="chart-bar-pair"><div class="cb-budget" style="height:40px"></div><div class="cb-actual" style="height:30px;background:#C0622A"></div></div><div class="chart-label">식비</div></div>
+              <div class="chart-bar-wrap"><div class="chart-bar-pair"><div class="cb-budget" style="height:24px"></div><div class="cb-actual" style="height:18px;background:#E8A060"></div></div><div class="chart-label">카페</div></div>
+              <div class="chart-bar-wrap"><div class="chart-bar-pair"><div class="cb-budget" style="height:32px"></div><div class="cb-actual" style="height:40px;background:#D94040"></div></div><div class="chart-label">쇼핑</div></div>
+              <div class="chart-bar-wrap"><div class="chart-bar-pair"><div class="cb-budget" style="height:16px"></div><div class="cb-actual" style="height:10px;background:#3A6FA8"></div></div><div class="chart-label">교통</div></div>
+              <div class="chart-bar-wrap"><div class="chart-bar-pair"><div class="cb-budget" style="height:12px"></div><div class="cb-actual" style="height:12px;background:#D94040"></div></div><div class="chart-label">의료</div></div>
+              <div class="chart-bar-wrap"><div class="chart-bar-pair"><div class="cb-budget" style="height:12px"></div><div class="cb-actual" style="height:18px;background:#5F8A6E"></div></div><div class="chart-label">여가</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">카테고리 비중</div>
+            <div class="pie-demo">
+              <div class="pie-circle"></div>
+              <div class="pie-legend">
+                <div class="pie-leg-item"><div class="pie-dot" style="background:#C0622A"></div>식비 35%</div>
+                <div class="pie-leg-item"><div class="pie-dot" style="background:#E8A060"></div>카페 24%</div>
+                <div class="pie-leg-item"><div class="pie-dot" style="background:#8B6FBE"></div>쇼핑 23%</div>
+                <div class="pie-leg-item"><div class="pie-dot" style="background:#5F8A6E"></div>여가 18%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bnav">
+          <div class="bnav-btn"><div class="bnav-icon">🏠</div><div class="bnav-label">홈</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">✏️</div><div class="bnav-label">입력</div></div>
+          <div class="bnav-btn active"><div class="bnav-icon">📊</div><div class="bnav-label">리포트</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">🏆</div><div class="bnav-label">챌린지</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">⚙️</div><div class="bnav-label">설정</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ 챌린지 -->
+  <div class="phone-wrap">
+    <div class="label">🏆 챌린지 — 스트릭 + 알</div>
+    <div class="phone">
+      <div class="screen">
+        <div style="padding:18px 14px 0">
+          <p style="font-size:18px;font-weight:800;margin-bottom:12px">🏆 챌린지</p>
+        </div>
+        <div style="padding:0 14px;overflow-y:auto;max-height:340px">
+          <div class="card" style="margin-bottom:8px">
+            <div class="streak-box">
+              <div style="font-size:24px;display:inline-block">🔥</div>
+              <div class="streak-num">2</div>
+              <div style="font-size:11px;font-weight:600;margin-top:4px">절약 스트릭</div>
+              <div class="streak-dots">
+                <div class="streak-dot dot-hit">✓</div>
+                <div class="streak-dot dot-hit">✓</div>
+                <div class="streak-dot dot-miss">·</div>
+                <div class="streak-dot dot-miss">·</div>
+                <div class="streak-dot dot-miss">·</div>
+                <div class="streak-dot dot-miss">·</div>
+              </div>
+              <div style="font-size:9px;color:#9A8A7A;margin-top:6px">최근 6개월</div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:8px">
+            <div class="egg-display">
+              <span class="egg-emoji">🥚</span>
+              <div class="egg-label">알이 흔들려요!</div>
+              <div class="egg-sub">2개월 연속 저축 달성 · 탭하면 흔들려요</div>
+            </div>
+            <div style="margin-top:10px">
+              <div style="display:flex;justify-content:space-between;font-size:9px;color:#9A8A7A;margin-bottom:4px"><span>현재 2개월</span><span>🐣 부화까지 4개월</span></div>
+              <div class="bar-track"><div class="bar-fill" style="width:33%;background:linear-gradient(90deg,#C0622A,#E8A060)"></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">🏺 목표 항아리</div>
+            <div class="jar-row">
+              <div class="jar-item">
+                <div style="font-size:30px;text-align:center;margin-bottom:4px">🏺</div>
+                <div class="jar-label">✈️ 여행</div>
+                <div class="jar-pct">33%</div>
+              </div>
+              <div class="jar-item">
+                <div style="font-size:30px;text-align:center;margin-bottom:4px">🏺</div>
+                <div class="jar-label">🏠 가전</div>
+                <div class="jar-pct">20%</div>
+              </div>
+              <div class="jar-item">
+                <div style="font-size:30px;text-align:center;margin-bottom:4px">🏺</div>
+                <div class="jar-label">💍 결혼</div>
+                <div class="jar-pct">24%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bnav">
+          <div class="bnav-btn"><div class="bnav-icon">🏠</div><div class="bnav-label">홈</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">✏️</div><div class="bnav-label">입력</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">📊</div><div class="bnav-label">리포트</div></div>
+          <div class="bnav-btn active"><div class="bnav-icon">🏆</div><div class="bnav-label">챌린지</div></div>
+          <div class="bnav-btn"><div class="bnav-icon">⚙️</div><div class="bnav-label">설정</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:48px;text-align:center">
+  <p style="color:#7A6A5A;font-size:13px;margin-bottom:16px">위 디자인으로 진행할까요?</p>
+  <p style="color:#5A4A4A;font-size:12px;margin-bottom:4px">✅ 마음에 들면 → <strong style="color:#FAF8F3">Claude에게 "진행해줘"</strong> 라고 말해주세요</p>
+  <p style="color:#5A4A4A;font-size:12px">❌ 변경 원하면 → 어떤 부분을 바꿀지 알려주세요</p>
+</div>
+
+</body>
+</html>
