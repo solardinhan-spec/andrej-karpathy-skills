@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BUDGET, getEggState, formatKRW, GOAL_JARS } from '../store';
+import { getEggState, formatKRW } from '../store';
 
 function Jar({ jar }) {
   const pct = Math.min(jar.current / jar.target, 1);
@@ -104,7 +104,7 @@ const MILESTONE_LABELS = [
   { months: 12, emoji: '🐉', label: '전설의 용!' },
 ];
 
-export default function Challenge({ streak, savingsLog, jars }) {
+export default function Challenge({ streak, savingsLog, jars, budgetSettings }) {
   const currentMonthHit = savingsLog[savingsLog.length - 1]?.hit || false;
   const nextMilestone = MILESTONE_LABELS.find(m => m.months > streak) || MILESTONE_LABELS[MILESTONE_LABELS.length - 1];
   const toNext = nextMilestone.months - streak;
@@ -162,7 +162,7 @@ export default function Challenge({ streak, savingsLog, jars }) {
             fontSize: 13,
             color: '#C0622A',
           }}>
-            💪 이번 달 저축 목표까지 <strong>{formatKRW(BUDGET.savings)}</strong> 달성하면 스트릭 유지!
+            💪 이번 달 저축 목표까지 <strong>{formatKRW(budgetSettings?.savings || 0)}</strong> 달성하면 스트릭 유지!
           </div>
         )}
       </div>
