@@ -7,7 +7,7 @@ import {
   CATEGORIES,
   getMonthExpenses, getCategoryTotals, getTotalSpent,
   getCatLabel, formatKRW, formatMonth,
-  calcVariable,
+  calcVariable, calcFixedTotalForMonth,
 } from '../store';
 
 const CUSTOM_TOOLTIP = ({ active, payload }) => {
@@ -23,29 +23,43 @@ const CUSTOM_TOOLTIP = ({ active, payload }) => {
   return null;
 };
 
-export default function Report({ expenses, budgetSettings, currentMonth, coupleMessages, onAddMessage }) {
+export default function Report({ expenses, budgetSettings, currentMonth, monthlyFixed, coupleMessages, onAddMessage }) {
   const monthExp = getMonthExpenses(expenses, currentMonth);
   const totals = getCategoryTotals(monthExp);
-  const spent = getTotalSpent(monthExp);
-  const variable = calcVariable(budgetSettings);
+  const variableSpent = getTotalSpent(monthExp);
+  const variable = calcVariable(budgetSettings, monthlyFixed, currentMonth);
+  const fixedTotal = calcFixedTotalForMonth(budgetSettings, monthlyFixed || {}, currentMonth);
+  const totalSpent = variableSpent + fixedTotal;
+  const totalIncome = budgetSettings.income.ihyeon + budgetSettings.income.hyewon;
+
   const [msg, setMsg] = useState({ text: '', person: '이현' });
   const [msgSaved, setMsgSaved] = useState(false);
 
-  const barData = CATEGORIES
-    .filter(c => (budgetSettings.catBudget[c.id] || 0) > 0 || totals[c.id] > 0)
-    .map(c => ({
-      name: c.id,
-      예산: budgetSettings.catBudget[c.id] || 0,
-      실지출: totals[c.id] || 0,
-      color: c.color,
-    }));
+  const savings_rate = ((budgetSettings.savings + budgetSettings.investment) / totalIncome * 100).toFixed(1);
+  const variable_rate = variable > 0 ? (variableSpent / variable * 100).toFixed(0) : 0;
 
-  const pieData = CATEGORIES
-    .filter(c => totals[c.id] > 0)
-    .map(c => ({ name: getCatLabel(c.id), value: totals[c.id], color: c.color }));
+  const catBudget = Array.isArray(budgetSettings.catBudget) ? budgetSettings.catBudget : [];
+  const barData = catBudget
+    .filter(b => b.amount > 0 || (totals[b.categoryId] || 0) > 0)
+    .map(b => {
+      const cat = CATEGORIES.find(c => c.id === b.categoryId);
+      return {
+        name: b.name,
+        예산: b.amount,
+        실지출: totals[b.categoryId] || 0,
+        color: cat?.color || '#9A9A9A',
+      };
+    });
 
-  const savings_rate = ((budgetSettings.savings + budgetSettings.investment) / (budgetSettings.income.ihyeon + budgetSettings.income.hyewon) * 100).toFixed(1);
-  const variable_rate = variable > 0 ? (spent / variable * 100).toFixed(0) : 0;
+  const ovr = monthlyFixed?.[currentMonth] || {};
+  const fixedIhyeon = budgetSettings.fixed.filter(f => f.person === '이현').reduce((s, f) => s + (ovr[f.id] !== undefined ? ovr[f.id] : f.amount), 0);
+  const fixedHyewon = budgetSettings.fixed.filter(f => f.person === '혜원').reduce((s, f) => s + (ovr[f.id] !== undefined ? ovr[f.id] : f.amount), 0);
+
+  const pieData = [
+    { name: '고정 - 이현', value: fixedIhyeon, color: '#C0622A' },
+    { name: '고정 - 혜원', value: fixedHyewon, color: '#8B6FBE' },
+    ...CATEGORIES.filter(c => (totals[c.id] || 0) > 0).map(c => ({ name: getCatLabel(c.id), value: totals[c.id], color: c.color })),
+  ].filter(d => d.value > 0);
 
   function handleMsgSubmit(e) {
     e.preventDefault();
@@ -66,8 +80,8 @@ export default function Report({ expenses, budgetSettings, currentMonth, coupleM
       {/* 요약 카드 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
         {[
-          { label: '총 변동지출', value: formatKRW(spent), sub: `예산의 ${variable_rate}% 사용`, ok: spent <= variable },
-          { label: '절약 금액', value: formatKRW(Math.max(variable - spent, 0)), sub: variable - spent >= 0 ? '잔액 있음 🎉' : '예산 초과 😅', ok: variable - spent >= 0 },
+          { label: '총 지출', value: formatKRW(totalSpent), sub: `수입의 ${totalIncome > 0 ? (totalSpent / totalIncome * 100).toFixed(0) : 0}%`, ok: totalSpent <= totalIncome },
+          { label: '기타지출 사용', value: formatKRW(variableSpent), sub: `예산의 ${variable_rate}%`, ok: variableSpent <= variable },
           { label: '저축+투자', value: formatKRW(budgetSettings.savings + budgetSettings.investment), sub: `수입의 ${savings_rate}%`, ok: true },
           { label: '지출 건수', value: `${monthExp.length}건`, sub: `이현 ${monthExp.filter(e => e.person === '이현').length} / 혜원 ${monthExp.filter(e => e.person === '혜원').length}`, ok: true },
         ].map(item => (
@@ -79,42 +93,68 @@ export default function Report({ expenses, budgetSettings, currentMonth, coupleM
         ))}
       </div>
 
-      {/* 바 차트 */}
-      <div className="card" style={{ padding: '14px 6px', marginBottom: 14 }}>
-        <h2 style={{ fontSize: 14, fontWeight: 700, paddingLeft: 10, marginBottom: 12 }}>예산 vs 실지출</h2>
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={barData} barGap={3} margin={{ top: 0, right: 8, left: -22, bottom: 0 }}>
-            <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9A8A7A' }} tickLine={false} axisLine={false} interval={0} />
-            <YAxis tick={{ fontSize: 8, fill: '#B0A090' }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? `${v/1000}k` : v} />
-            <Tooltip content={<CUSTOM_TOOLTIP />} />
-            <Bar dataKey="예산" fill="#E0D5C8" radius={[3, 3, 0, 0]} maxBarSize={16} />
-            <Bar dataKey="실지출" radius={[3, 3, 0, 0]} maxBarSize={16}>
-              {barData.map((entry, i) => (
-                <Cell key={i} fill={entry.실지출 > entry.예산 ? '#D94040' : entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 4 }}>
-          {[['#E0D5C8', '예산'], ['#C0622A', '실지출']].map(([c, l]) => (
-            <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9A8A7A' }}>
-              <div style={{ width: 10, height: 10, background: c, borderRadius: 2 }} />{l}
+      {/* 고정지출 내역 */}
+      <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>📋 고정지출 내역</h2>
+        <p style={{ fontSize: 11, color: '#9A8A7A', marginBottom: 12 }}>이현 {formatKRW(fixedIhyeon)} + 혜원 {formatKRW(fixedHyewon)} = 합계 {formatKRW(fixedTotal)}</p>
+        {['이현', '혜원'].map(person => {
+          const items = budgetSettings.fixed.filter(f => f.person === person);
+          return (
+            <div key={person} style={{ marginBottom: 12 }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#C0622A', marginBottom: 6 }}>고정지출 - {person}</p>
+              {items.map(f => {
+                const amt = ovr[f.id] !== undefined ? ovr[f.id] : f.amount;
+                return (
+                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #F5F0E8', fontSize: 13 }}>
+                    <span>{f.name}</span>
+                    <span style={{ fontWeight: 600 }}>{amt.toLocaleString('ko-KR')}원</span>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      {/* 도넛 차트 */}
+      {/* 기타지출 바 차트 */}
+      {barData.length > 0 && (
+        <div className="card" style={{ padding: '14px 6px', marginBottom: 14 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, paddingLeft: 10, marginBottom: 12 }}>🌡️ 기타지출 vs 예산</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={barData} barGap={3} margin={{ top: 0, right: 8, left: -22, bottom: 0 }}>
+              <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9A8A7A' }} tickLine={false} axisLine={false} interval={0} />
+              <YAxis tick={{ fontSize: 8, fill: '#B0A090' }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? `${v / 1000}k` : v} />
+              <Tooltip content={<CUSTOM_TOOLTIP />} />
+              <Bar dataKey="예산" fill="#E0D5C8" radius={[3, 3, 0, 0]} maxBarSize={16} />
+              <Bar dataKey="실지출" radius={[3, 3, 0, 0]} maxBarSize={16}>
+                {barData.map((entry, i) => (
+                  <Cell key={i} fill={entry.실지출 > entry.예산 ? '#D94040' : entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 4 }}>
+            {[['#E0D5C8', '예산'], ['#C0622A', '실지출']].map(([c, l]) => (
+              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9A8A7A' }}>
+                <div style={{ width: 10, height: 10, background: c, borderRadius: 2 }} />{l}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 전체 지출 파이 차트 */}
       {pieData.length > 0 && (
         <div className="card" style={{ padding: 14, marginBottom: 14 }}>
-          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>카테고리 비중</h2>
-          <ResponsiveContainer width="100%" height={190}>
+          <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>전체 지출 구조</h2>
+          <p style={{ fontSize: 11, color: '#9A8A7A', marginBottom: 12 }}>고정지출 + 기타지출 포함</p>
+          <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
                 {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Pie>
               <Tooltip formatter={v => `${v.toLocaleString('ko-KR')}원`} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 10 }} />
             </PieChart>
           </ResponsiveContainer>
         </div>

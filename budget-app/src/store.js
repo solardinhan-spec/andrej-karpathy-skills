@@ -13,7 +13,7 @@ export const CATEGORIES = [
 ];
 
 // ──────────────────────────────────────────
-// 기본 예산 설정값 (수정 가능)
+// 기본 예산 설정값
 // ──────────────────────────────────────────
 export const DEFAULT_BUDGET_SETTINGS = {
   income: {
@@ -21,50 +21,68 @@ export const DEFAULT_BUDGET_SETTINGS = {
     hyewon: 217139,
   },
   fixed: [
-    { id: 'f1',  name: '차량 할부',    amount: 350000, person: '이현', category: '교통' },
-    { id: 'f2',  name: 'KB손보(차량)', amount: 159000, person: '이현', category: '보험' },
-    { id: 'f3',  name: '생명보험(이현)', amount: 120000, person: '이현', category: '보험' },
-    { id: 'f4',  name: '통신비(이현)',  amount: 55000,  person: '이현', category: '통신' },
-    { id: 'f5',  name: '주차비',        amount: 100000, person: '이현', category: '교통' },
-    { id: 'f6',  name: '유류비',        amount: 200000, person: '이현', category: '교통' },
-    { id: 'f7',  name: '넷플릭스',      amount: 17000,  person: '이현', category: '구독' },
-    { id: 'f8',  name: '유튜브프리미엄', amount: 14000,  person: '이현', category: '구독' },
-    { id: 'f9',  name: '기타 고정(이현)', amount: 541250, person: '이현', category: '기타' },
-    { id: 'f10', name: '공과금',        amount: 150000, person: '혜원', category: '공과금' },
-    { id: 'f11', name: '생명보험(혜원)', amount: 80000,  person: '혜원', category: '보험' },
-    { id: 'f12', name: '통신비(혜원)',  amount: 55000,  person: '혜원', category: '통신' },
-    { id: 'f13', name: '기타 고정(혜원)', amount: 253559, person: '혜원', category: '기타' },
+    { id: 'f1',  name: '차량 할부',      amount: 350000, person: '이현' },
+    { id: 'f2',  name: 'KB손보(차량)',    amount: 159000, person: '이현' },
+    { id: 'f3',  name: '생명보험(이현)',  amount: 120000, person: '이현' },
+    { id: 'f4',  name: '통신비(이현)',    amount: 55000,  person: '이현' },
+    { id: 'f5',  name: '주차비',          amount: 100000, person: '이현' },
+    { id: 'f6',  name: '유류비',          amount: 200000, person: '이현' },
+    { id: 'f7',  name: '넷플릭스',        amount: 17000,  person: '이현' },
+    { id: 'f8',  name: '유튜브프리미엄',  amount: 14000,  person: '이현' },
+    { id: 'f9',  name: '기타 고정(이현)', amount: 541250, person: '이현' },
+    { id: 'f10', name: '공과금',          amount: 150000, person: '혜원' },
+    { id: 'f11', name: '생명보험(혜원)',  amount: 80000,  person: '혜원' },
+    { id: 'f12', name: '통신비(혜원)',    amount: 55000,  person: '혜원' },
+    { id: 'f13', name: '기타 고정(혜원)', amount: 253559, person: '혜원' },
   ],
   savings: 500000,
   investment: 300000,
   allowance: { ihyeon: 200000, hyewon: 200000 },
   reserve: 100000,
-  catBudget: {
-    '식비': 80000,
-    '카페': 30000,
-    '쇼핑': 40000,
-    '교통': 20000,
-    '의료': 15000,
-    '여가': 15000,
-    '경조사': 0,
-    '기타': 10330,
-  },
+  // 기타지출 항목 (수정 가능한 배열)
+  catBudget: [
+    { id: 'cb1', categoryId: '식비',   name: '식비',   amount: 80000,  person: '공통' },
+    { id: 'cb2', categoryId: '카페',   name: '카페',   amount: 30000,  person: '공통' },
+    { id: 'cb3', categoryId: '쇼핑',   name: '쇼핑',   amount: 40000,  person: '공통' },
+    { id: 'cb4', categoryId: '교통',   name: '교통',   amount: 20000,  person: '이현' },
+    { id: 'cb5', categoryId: '의료',   name: '의료',   amount: 15000,  person: '공통' },
+    { id: 'cb6', categoryId: '여가',   name: '여가',   amount: 15000,  person: '공통' },
+    { id: 'cb7', categoryId: '경조사', name: '경조사', amount: 0,      person: '공통' },
+    { id: 'cb8', categoryId: '기타',   name: '기타',   amount: 10330,  person: '공통' },
+  ],
 };
 
-// 총수입 계산
+// ──────────────────────────────────────────
+// 계산 함수
+// ──────────────────────────────────────────
 export function calcTotal(settings) {
   return settings.income.ihyeon + settings.income.hyewon;
 }
 
-// 고정지출 합계
 export function calcFixedTotal(settings) {
   return settings.fixed.reduce((s, f) => s + f.amount, 0);
 }
 
-// 변동지출 예산 = 총수입 - 고정지출합계 - 저축 - 투자 - 용돈합계 - 예비금
-export function calcVariable(settings) {
+// 월별 고정지출 합계 (override 적용)
+export function calcFixedTotalForMonth(settings, monthlyFixed, month) {
+  const overrides = monthlyFixed?.[month] || {};
+  return settings.fixed.reduce((s, f) => {
+    const amt = overrides[f.id] !== undefined ? overrides[f.id] : f.amount;
+    return s + amt;
+  }, 0);
+}
+
+export function calcCatBudgetTotal(settings) {
+  if (!Array.isArray(settings.catBudget)) return 0;
+  return settings.catBudget.reduce((s, b) => s + b.amount, 0);
+}
+
+export function calcVariable(settings, monthlyFixed, month) {
+  const fixedTotal = (monthlyFixed && month)
+    ? calcFixedTotalForMonth(settings, monthlyFixed, month)
+    : calcFixedTotal(settings);
   return calcTotal(settings)
-    - calcFixedTotal(settings)
+    - fixedTotal
     - settings.savings
     - settings.investment
     - settings.allowance.ihyeon
@@ -72,29 +90,52 @@ export function calcVariable(settings) {
     - settings.reserve;
 }
 
+// 카테고리 예산 조회
+export function getCatBudgetAmount(catBudget, categoryId) {
+  if (Array.isArray(catBudget)) {
+    return catBudget.find(b => b.categoryId === categoryId)?.amount || 0;
+  }
+  // 이전 형식 호환
+  return catBudget?.[categoryId] || 0;
+}
+
+// 복리 누적액 계산 (연 4% 기준)
+export function calcCompoundSavings(monthlyAmount, monthsElapsed, annualRate = 0.04) {
+  if (monthsElapsed <= 0 || monthlyAmount <= 0) return 0;
+  const r = annualRate / 12;
+  return Math.round(monthlyAmount * ((Math.pow(1 + r, monthsElapsed) - 1) / r));
+}
+
+// 두 월 사이 개월 수 (endMonth - startMonth)
+export function monthsBetween(startMonth, endMonth) {
+  const [sy, sm] = startMonth.split('-').map(Number);
+  const [ey, em] = endMonth.split('-').map(Number);
+  return (ey - sy) * 12 + (em - sm) + 1; // 시작 월 포함
+}
+
 // ──────────────────────────────────────────
-// 5월 실데이터 (샘플)
+// 5월 실데이터
 // ──────────────────────────────────────────
 const MAY_EXPENSES = [
-  { id: 'e01', date: '2026-05-02', amount: 15000, category: '식비',   merchant: '홈플러스',   person: '혜원', memo: '장보기' },
-  { id: 'e02', date: '2026-05-03', amount: 4500,  category: '카페',   merchant: '이디야',     person: '이현', memo: '' },
-  { id: 'e03', date: '2026-05-05', amount: 28000, category: '식비',   merchant: '고기집',     person: '이현', memo: '어린이날 외식' },
-  { id: 'e04', date: '2026-05-07', amount: 12000, category: '교통',   merchant: 'GS칼텍스',   person: '이현', memo: '주유' },
-  { id: 'e05', date: '2026-05-08', amount: 5900,  category: '카페',   merchant: '스타벅스',   person: '혜원', memo: '아메리카노 2잔' },
-  { id: 'e06', date: '2026-05-10', amount: 32400, category: '쇼핑',   merchant: '쿠팡',       person: '이현', memo: '주방용품' },
-  { id: 'e07', date: '2026-05-12', amount: 8000,  category: '식비',   merchant: '편의점',     person: '혜원', memo: '' },
-  { id: 'e08', date: '2026-05-14', amount: 22000, category: '식비',   merchant: '이마트',     person: '혜원', memo: '장보기' },
-  { id: 'e09', date: '2026-05-16', amount: 4200,  category: '카페',   merchant: 'GS25',       person: '혜원', memo: '' },
-  { id: 'e10', date: '2026-05-18', amount: 15000, category: '여가',   merchant: '영화관',     person: '이현', memo: '둘이서 영화' },
-  { id: 'e11', date: '2026-05-20', amount: 8500,  category: '교통',   merchant: '주유소',     person: '이현', memo: '' },
-  { id: 'e12', date: '2026-05-22', amount: 12000, category: '식비',   merchant: '김밥천국',   person: '이현', memo: '' },
-  { id: 'e13', date: '2026-05-24', amount: 18000, category: '쇼핑',   merchant: 'H&M',        person: '혜원', memo: '' },
-  { id: 'e14', date: '2026-05-25', amount: 9000,  category: '여가',   merchant: '넷플릭스',   person: '이현', memo: '구독' },
-  { id: 'e15', date: '2026-05-26', amount: 15000, category: '의료',   merchant: '약국',       person: '혜원', memo: '감기약' },
+  { id: 'e01', date: '2026-05-02', amount: 15000, category: '식비',   merchant: '홈플러스',     person: '혜원', memo: '장보기' },
+  { id: 'e02', date: '2026-05-03', amount: 4500,  category: '카페',   merchant: '이디야',       person: '이현', memo: '' },
+  { id: 'e03', date: '2026-05-05', amount: 28000, category: '식비',   merchant: '고기집',       person: '이현', memo: '어린이날 외식' },
+  { id: 'e04', date: '2026-05-07', amount: 12000, category: '교통',   merchant: 'GS칼텍스',     person: '이현', memo: '주유' },
+  { id: 'e05', date: '2026-05-08', amount: 5900,  category: '카페',   merchant: '스타벅스',     person: '혜원', memo: '아메리카노 2잔' },
+  { id: 'e06', date: '2026-05-10', amount: 32400, category: '쇼핑',   merchant: '쿠팡',         person: '이현', memo: '주방용품' },
+  { id: 'e07', date: '2026-05-12', amount: 8000,  category: '식비',   merchant: '편의점',       person: '혜원', memo: '' },
+  { id: 'e08', date: '2026-05-14', amount: 22000, category: '식비',   merchant: '이마트',       person: '혜원', memo: '장보기' },
+  { id: 'e09', date: '2026-05-16', amount: 4200,  category: '카페',   merchant: 'GS25',         person: '혜원', memo: '' },
+  { id: 'e10', date: '2026-05-18', amount: 15000, category: '여가',   merchant: '영화관',       person: '이현', memo: '둘이서 영화' },
+  { id: 'e11', date: '2026-05-20', amount: 8500,  category: '교통',   merchant: '주유소',       person: '이현', memo: '' },
+  { id: 'e12', date: '2026-05-22', amount: 12000, category: '식비',   merchant: '김밥천국',     person: '이현', memo: '' },
+  { id: 'e13', date: '2026-05-24', amount: 18000, category: '쇼핑',   merchant: 'H&M',          person: '혜원', memo: '' },
+  { id: 'e14', date: '2026-05-25', amount: 9000,  category: '여가',   merchant: '넷플릭스',     person: '이현', memo: '구독' },
+  { id: 'e15', date: '2026-05-26', amount: 15000, category: '의료',   merchant: '약국',         person: '혜원', memo: '감기약' },
   { id: 'e16', date: '2026-05-27', amount: 7000,  category: '카페',   merchant: '투썸플레이스', person: '이현', memo: '' },
-  { id: 'e17', date: '2026-05-28', amount: 6000,  category: '식비',   merchant: '떡볶이',     person: '혜원', memo: '' },
-  { id: 'e18', date: '2026-05-29', amount: 4200,  category: '카페',   merchant: '메가커피',   person: '이현', memo: '' },
-  { id: 'e19', date: '2026-05-30', amount: 25000, category: '식비',   merchant: '마트',       person: '혜원', memo: '이번주 장보기' },
+  { id: 'e17', date: '2026-05-28', amount: 6000,  category: '식비',   merchant: '떡볶이',       person: '혜원', memo: '' },
+  { id: 'e18', date: '2026-05-29', amount: 4200,  category: '카페',   merchant: '메가커피',     person: '이현', memo: '' },
+  { id: 'e19', date: '2026-05-30', amount: 25000, category: '식비',   merchant: '마트',         person: '혜원', memo: '이번주 장보기' },
 ];
 
 export const GOAL_JARS = [
@@ -106,12 +147,28 @@ export const GOAL_JARS = [
 // ──────────────────────────────────────────
 // LocalStorage
 // ──────────────────────────────────────────
-const STORAGE_KEY = 'woori-gaebu-v2';
+const STORAGE_KEY = 'woori-gaebu-v3';
+
+function migrateCatBudget(catBudget) {
+  if (Array.isArray(catBudget)) return catBudget;
+  // 이전 객체 형식 → 배열로 마이그레이션
+  return DEFAULT_BUDGET_SETTINGS.catBudget.map(item => ({
+    ...item,
+    amount: catBudget[item.categoryId] ?? item.amount,
+  }));
+}
 
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const s = JSON.parse(raw);
+      // catBudget 마이그레이션
+      if (s.budgetSettings) {
+        s.budgetSettings.catBudget = migrateCatBudget(s.budgetSettings.catBudget);
+      }
+      return s;
+    }
   } catch {}
   return null;
 }
@@ -127,8 +184,10 @@ export function getInitialState() {
   if (saved) return saved;
   return {
     currentMonth: '2026-05',
+    appStartMonth: '2026-05',
     expenses: MAY_EXPENSES,
     budgetSettings: DEFAULT_BUDGET_SETTINGS,
+    monthlyFixed: {},
     savingsLog: [
       { month: '2026-03', hit: true },
       { month: '2026-04', hit: true },
@@ -178,14 +237,13 @@ export function getBarColor(pct) {
 }
 
 export function getEggState(streak) {
-  if (streak >= 6) return { emoji: '🐉', label: '전설의 용!',  color: '#C8960A' };
-  if (streak >= 4) return { emoji: '🐓', label: '닭이 됐어요!', color: '#5F8A6E' };
-  if (streak >= 2) return { emoji: '🐣', label: '부화 중!',    color: '#E8A060' };
+  if (streak >= 6) return { emoji: '🐉', label: '전설의 용!',    color: '#C8960A' };
+  if (streak >= 4) return { emoji: '🐓', label: '닭이 됐어요!',  color: '#5F8A6E' };
+  if (streak >= 2) return { emoji: '🐣', label: '부화 중!',      color: '#E8A060' };
   if (streak >= 1) return { emoji: '🥚', label: '알이 흔들려요!', color: '#C0622A' };
-  return             { emoji: '🪨', label: '아직 돌이에요',  color: '#9A9A9A' };
+  return             { emoji: '🪨', label: '아직 돌이에요',    color: '#9A9A9A' };
 }
 
-// 월 이동
 export function prevMonth(month) {
   const [y, m] = month.split('-').map(Number);
   const d = new Date(y, m - 2, 1);

@@ -108,7 +108,7 @@ export default function Input({ onAdd, currentMonth, budgetSettings }) {
       <div style={{ margin: '16px 0', padding: '14px 16px', background: 'rgba(95,138,110,0.1)', borderRadius: 12, borderLeft: '3px solid #5F8A6E' }}>
         <p style={{ fontSize: 12, color: '#5F8A6E', fontWeight: 600, marginBottom: 4 }}>💡 절약 팁</p>
         <p style={{ fontSize: 12, color: '#7A6A5A' }}>
-          {formatMonth(currentMonth)} 변동지출 예산은 <strong style={{ color: '#1A1410' }}>{variable.toLocaleString('ko-KR')}원</strong>이에요.<br />
+          {formatMonth(currentMonth)} 기타지출 예산은 <strong style={{ color: '#1A1410' }}>{variable.toLocaleString('ko-KR')}원</strong>이에요.<br />
           함께 아끼면 더 빨리 모을 수 있어요! 💪
         </p>
       </div>

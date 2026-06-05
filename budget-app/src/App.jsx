@@ -50,14 +50,19 @@ export default function App() {
     update(prev => ({ ...prev, budgetSettings: newSettings }));
   }
 
+  function handleMonthlyFixedUpdate(month, overrides) {
+    update(prev => ({
+      ...prev,
+      monthlyFixed: { ...prev.monthlyFixed, [month]: overrides },
+    }));
+  }
+
   function goMonth(dir) {
     update(prev => ({
       ...prev,
       currentMonth: dir === 'prev' ? prevMonth(prev.currentMonth) : nextMonth(prev.currentMonth),
     }));
   }
-
-  const isCurrentMonth = state.currentMonth === new Date().toISOString().slice(0, 7);
 
   return (
     <div id="app-shell">
@@ -67,10 +72,13 @@ export default function App() {
             expenses={state.expenses}
             budgetSettings={state.budgetSettings}
             currentMonth={state.currentMonth}
+            appStartMonth={state.appStartMonth || state.currentMonth}
+            monthlyFixed={state.monthlyFixed || {}}
             onMonthChange={goMonth}
             onEditExpense={handleEditExpense}
             onDeleteExpense={handleDeleteExpense}
             onBudgetUpdate={handleBudgetUpdate}
+            onMonthlyFixedUpdate={handleMonthlyFixedUpdate}
           />
         )}
         {tab === 'input' && (
@@ -85,6 +93,7 @@ export default function App() {
             expenses={state.expenses}
             budgetSettings={state.budgetSettings}
             currentMonth={state.currentMonth}
+            monthlyFixed={state.monthlyFixed || {}}
             coupleMessages={state.coupleMessages}
             onAddMessage={handleAddMessage}
           />
@@ -94,6 +103,9 @@ export default function App() {
             streak={state.streak}
             savingsLog={state.savingsLog}
             jars={state.jars}
+            budgetSettings={state.budgetSettings}
+            appStartMonth={state.appStartMonth || state.currentMonth}
+            currentMonth={state.currentMonth}
           />
         )}
         {tab === 'settings' && (

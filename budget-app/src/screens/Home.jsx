@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   CATEGORIES,
   getMonthExpenses, getCategoryTotals, getTotalSpent,
   getCatColor, getCatLabel, formatKRW, getBarColor,
-  calcTotal, calcFixedTotal, calcVariable, formatMonth,
+  calcTotal, calcFixedTotal, calcFixedTotalForMonth, calcVariable,
+  getCatBudgetAmount, calcCompoundSavings, monthsBetween,
+  formatMonth,
 } from '../store';
 
 // ── 애니메이션 숫자 ──────────────────────────────
@@ -29,18 +31,73 @@ function AnimatedNumber({ value }) {
   );
 }
 
+// ── 스와이프 삭제 행 ──────────────────────────────
+function SwipeRow({ onDelete, onClick, children }) {
+  const [offset, setOffset] = useState(0);
+  const startX = useRef(null);
+  const swiping = useRef(false);
+
+  function onTouchStart(e) {
+    startX.current = e.touches[0].clientX;
+    swiping.current = false;
+  }
+  function onTouchMove(e) {
+    if (startX.current === null) return;
+    const dx = e.touches[0].clientX - startX.current;
+    if (dx < -5) {
+      swiping.current = true;
+      setOffset(Math.max(dx, -80));
+    } else if (dx > 5 && offset < 0) {
+      swiping.current = true;
+      setOffset(0);
+    }
+  }
+  function onTouchEnd() {
+    if (offset < -50) setOffset(-80);
+    else setOffset(0);
+    startX.current = null;
+  }
+  function handleClick() {
+    if (swiping.current) { swiping.current = false; return; }
+    if (offset < 0) { setOffset(0); return; }
+    onClick?.();
+  }
+
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden' }}>
+      <div style={{
+        position: 'absolute', right: 0, top: 0, bottom: 0, width: 80,
+        background: '#D94040', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <button onClick={onDelete} style={{ color: 'white', fontSize: 12, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', padding: '4px 8px' }}>
+          🗑️<br />삭제
+        </button>
+      </div>
+      <div
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onClick={handleClick}
+        style={{
+          transform: `translateX(${offset}px)`,
+          transition: startX.current ? 'none' : 'transform 0.2s ease',
+          background: 'white',
+          position: 'relative',
+          zIndex: 1,
+          cursor: 'pointer',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
 // ── 모달 래퍼 ──────────────────────────────────
 function Modal({ title, onClose, children }) {
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-      zIndex: 200, display: 'flex', alignItems: 'flex-end',
-    }} onClick={onClose}>
-      <div
-        className="slide-up"
-        style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', width: '100%', maxWidth: 430, margin: '0 auto' }}
-        onClick={e => e.stopPropagation()}
-      >
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 200, display: 'flex', alignItems: 'flex-end' }} onClick={onClose}>
+      <div className="slide-up" style={{ background: 'white', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', width: '100%', maxWidth: 430, margin: '0 auto' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ fontSize: 17, fontWeight: 800 }}>{title}</h2>
           <button onClick={onClose} style={{ fontSize: 22, background: 'none', border: 'none', cursor: 'pointer', color: '#9A8A7A' }}>✕</button>
@@ -51,20 +108,21 @@ function Modal({ title, onClose, children }) {
   );
 }
 
+const iStyle = { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E0D5C8', fontSize: 16, fontFamily: 'inherit', outline: 'none', marginTop: 6, marginBottom: 14 };
+
 // ── 수입 수정 모달 ──────────────────────────────
 function IncomeModal({ settings, onSave, onClose }) {
   const [ihyeon, setIhyeon] = useState(String(settings.income.ihyeon));
   const [hyewon, setHyewon] = useState(String(settings.income.hyewon));
-  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E0D5C8', fontSize: 16, fontFamily: 'inherit', outline: 'none', marginTop: 6, marginBottom: 14 };
   return (
     <Modal title="💰 수입 수정" onClose={onClose}>
       <label style={{ fontSize: 12, fontWeight: 600, color: '#7A6A5A' }}>이현 월급</label>
-      <input type="number" value={ihyeon} onChange={e => setIhyeon(e.target.value)} style={inputStyle} />
+      <input type="number" value={ihyeon} onChange={e => setIhyeon(e.target.value)} style={iStyle} />
       <label style={{ fontSize: 12, fontWeight: 600, color: '#7A6A5A' }}>혜원 수입</label>
-      <input type="number" value={hyewon} onChange={e => setHyewon(e.target.value)} style={inputStyle} />
+      <input type="number" value={hyewon} onChange={e => setHyewon(e.target.value)} style={iStyle} />
       <button onClick={() => { onSave({ ...settings, income: { ihyeon: Number(ihyeon), hyewon: Number(hyewon) } }); onClose(); }}
         style={{ width: '100%', padding: 14, borderRadius: 12, background: '#C0622A', color: 'white', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-        저장하기
+        저장
       </button>
     </Modal>
   );
@@ -74,47 +132,67 @@ function IncomeModal({ settings, onSave, onClose }) {
 function SavingsModal({ settings, onSave, onClose }) {
   const [savings, setSavings] = useState(String(settings.savings));
   const [investment, setInvestment] = useState(String(settings.investment));
-  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E0D5C8', fontSize: 16, fontFamily: 'inherit', outline: 'none', marginTop: 6, marginBottom: 14 };
   return (
     <Modal title="💚 저축·투자 목표" onClose={onClose}>
       <label style={{ fontSize: 12, fontWeight: 600, color: '#7A6A5A' }}>저축 목표</label>
-      <input type="number" value={savings} onChange={e => setSavings(e.target.value)} style={inputStyle} />
+      <input type="number" value={savings} onChange={e => setSavings(e.target.value)} style={iStyle} />
       <label style={{ fontSize: 12, fontWeight: 600, color: '#7A6A5A' }}>투자 목표</label>
-      <input type="number" value={investment} onChange={e => setInvestment(e.target.value)} style={inputStyle} />
+      <input type="number" value={investment} onChange={e => setInvestment(e.target.value)} style={iStyle} />
       <button onClick={() => { onSave({ ...settings, savings: Number(savings), investment: Number(investment) }); onClose(); }}
         style={{ width: '100%', padding: 14, borderRadius: 12, background: '#5F8A6E', color: 'white', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-        저장하기
+        저장
       </button>
     </Modal>
   );
 }
 
-// ── 고정지출 상세 모달 ──────────────────────────
-function FixedModal({ settings, onClose }) {
+// ── 고정지출 상세 + 월별 금액 수정 모달 ──────────────────────────
+function FixedModal({ settings, currentMonth, monthlyFixed, onSave, onClose }) {
+  const overrides = monthlyFixed[currentMonth] || {};
+  const [amounts, setAmounts] = useState(() => {
+    const init = {};
+    settings.fixed.forEach(f => { init[f.id] = String(overrides[f.id] !== undefined ? overrides[f.id] : f.amount); });
+    return init;
+  });
+
+  function handleSave() {
+    const result = {};
+    settings.fixed.forEach(f => { result[f.id] = Number(amounts[f.id]) || 0; });
+    onSave(currentMonth, result);
+    onClose();
+  }
+
   return (
     <Modal title="📋 고정지출 내역" onClose={onClose}>
-      <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+      <p style={{ fontSize: 11, color: '#9A8A7A', marginBottom: 12 }}>이번 달 금액을 직접 수정할 수 있어요</p>
+      <div style={{ maxHeight: 360, overflowY: 'auto' }}>
         {['이현', '혜원'].map(person => {
           const items = settings.fixed.filter(f => f.person === person);
-          const total = items.reduce((s, f) => s + f.amount, 0);
+          const total = items.reduce((s, f) => s + (Number(amounts[f.id]) || 0), 0);
           return (
-            <div key={person} style={{ marginBottom: 16 }}>
+            <div key={person} style={{ marginBottom: 18 }}>
               <p style={{ fontSize: 12, fontWeight: 700, color: '#C0622A', marginBottom: 8 }}>
-                👤 {person} — {total.toLocaleString('ko-KR')}원
+                고정지출 - {person} · {total.toLocaleString('ko-KR')}원
               </p>
               {items.map(f => (
-                <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #F5F0E8' }}>
-                  <span style={{ fontSize: 13 }}>{f.name}</span>
-                  <span style={{ fontSize: 13, fontWeight: 600 }}>{f.amount.toLocaleString('ko-KR')}원</span>
+                <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid #F5F0E8', gap: 8 }}>
+                  <span style={{ fontSize: 13, flex: 1 }}>{f.name}</span>
+                  <input
+                    type="number"
+                    value={amounts[f.id]}
+                    onChange={e => setAmounts(a => ({ ...a, [f.id]: e.target.value }))}
+                    style={{ width: 90, padding: '4px 8px', borderRadius: 8, border: '1.5px solid #E0D5C8', fontSize: 12, fontFamily: 'inherit', outline: 'none', textAlign: 'right' }}
+                  />
                 </div>
               ))}
             </div>
           );
         })}
       </div>
-      <p style={{ fontSize: 12, color: '#9A8A7A', textAlign: 'center', marginTop: 10 }}>
-        수정은 ⚙️ 설정 탭에서 할 수 있어요
-      </p>
+      <button onClick={handleSave}
+        style={{ width: '100%', padding: 14, borderRadius: 12, background: '#C0622A', color: 'white', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginTop: 12 }}>
+        이번 달 금액 저장
+      </button>
     </Modal>
   );
 }
@@ -124,18 +202,17 @@ function AllowanceModal({ settings, onSave, onClose }) {
   const [ihyeon, setIhyeon] = useState(String(settings.allowance.ihyeon));
   const [hyewon, setHyewon] = useState(String(settings.allowance.hyewon));
   const [reserve, setReserve] = useState(String(settings.reserve));
-  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E0D5C8', fontSize: 16, fontFamily: 'inherit', outline: 'none', marginTop: 6, marginBottom: 14 };
   return (
     <Modal title="💵 용돈·예비금" onClose={onClose}>
       <label style={{ fontSize: 12, fontWeight: 600, color: '#7A6A5A' }}>이현 용돈</label>
-      <input type="number" value={ihyeon} onChange={e => setIhyeon(e.target.value)} style={inputStyle} />
+      <input type="number" value={ihyeon} onChange={e => setIhyeon(e.target.value)} style={iStyle} />
       <label style={{ fontSize: 12, fontWeight: 600, color: '#7A6A5A' }}>혜원 용돈</label>
-      <input type="number" value={hyewon} onChange={e => setHyewon(e.target.value)} style={inputStyle} />
+      <input type="number" value={hyewon} onChange={e => setHyewon(e.target.value)} style={iStyle} />
       <label style={{ fontSize: 12, fontWeight: 600, color: '#7A6A5A' }}>비상예비금</label>
-      <input type="number" value={reserve} onChange={e => setReserve(e.target.value)} style={inputStyle} />
+      <input type="number" value={reserve} onChange={e => setReserve(e.target.value)} style={iStyle} />
       <button onClick={() => { onSave({ ...settings, allowance: { ihyeon: Number(ihyeon), hyewon: Number(hyewon) }, reserve: Number(reserve) }); onClose(); }}
         style={{ width: '100%', padding: 14, borderRadius: 12, background: '#C8960A', color: 'white', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-        저장하기
+        저장
       </button>
     </Modal>
   );
@@ -144,17 +221,15 @@ function AllowanceModal({ settings, onSave, onClose }) {
 // ── 지출 수정 모달 ──────────────────────────────
 function ExpenseEditModal({ expense, onSave, onDelete, onClose }) {
   const [form, setForm] = useState({ ...expense });
-  const [amtDisplay, setAmtDisplay] = useState(String(expense.amount));
+  const [amtDisplay, setAmtDisplay] = useState(Number(expense.amount).toLocaleString('ko-KR'));
   const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E0D5C8', fontSize: 14, fontFamily: 'inherit', outline: 'none', marginBottom: 10 };
   return (
     <Modal title="✏️ 지출 수정" onClose={onClose}>
-      <div style={{ marginBottom: 10 }}>
-        <input type="text" inputMode="numeric"
-          value={amtDisplay}
-          onChange={e => { const r = e.target.value.replace(/[^0-9]/g, ''); setAmtDisplay(r ? Number(r).toLocaleString('ko-KR') : ''); setForm(f => ({ ...f, amount: Number(r) })); }}
-          style={{ ...inputStyle, fontSize: 22, fontWeight: 700 }}
-          placeholder="금액" />
-      </div>
+      <input type="text" inputMode="numeric"
+        value={amtDisplay}
+        onChange={e => { const r = e.target.value.replace(/[^0-9]/g, ''); setAmtDisplay(r ? Number(r).toLocaleString('ko-KR') : ''); setForm(f => ({ ...f, amount: Number(r) })); }}
+        style={{ ...inputStyle, fontSize: 22, fontWeight: 700, marginBottom: 10 }}
+        placeholder="금액" />
       <input type="text" value={form.merchant} onChange={e => setForm(f => ({ ...f, merchant: e.target.value }))} style={inputStyle} placeholder="가맹점명" />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
         {CATEGORIES.map(cat => (
@@ -165,7 +240,7 @@ function ExpenseEditModal({ expense, onSave, onDelete, onClose }) {
         ))}
       </div>
       <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} style={inputStyle} />
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         {['이현', '혜원'].map(p => (
           <button key={p} type="button" onClick={() => setForm(f => ({ ...f, person: p }))}
             style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: `2px solid ${form.person === p ? '#C0622A' : '#E0D5C8'}`, background: form.person === p ? '#C0622A' : 'white', color: form.person === p ? 'white' : '#7A6A5A', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -174,38 +249,37 @@ function ExpenseEditModal({ expense, onSave, onDelete, onClose }) {
         ))}
       </div>
       <input type="text" value={form.memo} onChange={e => setForm(f => ({ ...f, memo: e.target.value }))} style={inputStyle} placeholder="메모 (선택)" />
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={() => { if (window.confirm('삭제할까요?')) { onDelete(expense.id); onClose(); } }}
-          style={{ flex: 1, padding: 12, borderRadius: 12, border: '2px solid #D94040', background: 'white', color: '#D94040', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-          🗑️ 삭제
-        </button>
-        <button onClick={() => { onSave(form); onClose(); }}
-          style={{ flex: 2, padding: 12, borderRadius: 12, border: 'none', background: '#C0622A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-          저장
-        </button>
-      </div>
+      <button onClick={() => { onSave(form); onClose(); }}
+        style={{ width: '100%', padding: 12, borderRadius: 12, border: 'none', background: '#C0622A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        저장
+      </button>
     </Modal>
   );
 }
 
 // ── 메인 홈 화면 ──────────────────────────────
-export default function Home({ expenses, budgetSettings, currentMonth, onMonthChange, onEditExpense, onDeleteExpense, onBudgetUpdate }) {
-  const [modal, setModal] = useState(null); // 'income'|'fixed'|'savings'|'allowance'|{expense}
+export default function Home({ expenses, budgetSettings, currentMonth, appStartMonth, monthlyFixed, onMonthChange, onEditExpense, onDeleteExpense, onBudgetUpdate, onMonthlyFixedUpdate }) {
+  const [modal, setModal] = useState(null);
 
   const monthExp = getMonthExpenses(expenses, currentMonth);
   const totals = getCategoryTotals(monthExp);
   const spent = getTotalSpent(monthExp);
-  const variable = calcVariable(budgetSettings);
+  const variable = calcVariable(budgetSettings, monthlyFixed, currentMonth);
   const remaining = variable - spent;
   const total = calcTotal(budgetSettings);
-  const fixed = calcFixedTotal(budgetSettings);
+  const fixed = calcFixedTotalForMonth(budgetSettings, monthlyFixed, currentMonth);
+
+  // 누적 저축 복리 계산
+  const monthsElapsed = monthsBetween(appStartMonth, currentMonth);
+  const monthlyTarget = budgetSettings.savings + budgetSettings.investment;
+  const accumulated = calcCompoundSavings(monthlyTarget, monthsElapsed);
 
   const recentFive = [...monthExp].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
 
   const summaryCards = [
     { label: '총수입', value: total, color: '#7FD4A0', onClick: () => setModal('income') },
     { label: '고정지출', value: fixed, color: '#E8A060', onClick: () => setModal('fixed') },
-    { label: '저축+투자', value: budgetSettings.savings + budgetSettings.investment, color: '#8DB4E8', onClick: () => setModal('savings') },
+    { label: '저축+투자', value: monthlyTarget, color: '#8DB4E8', onClick: () => setModal('savings') },
     { label: '용돈+예비', value: budgetSettings.allowance.ihyeon + budgetSettings.allowance.hyewon + budgetSettings.reserve, color: '#D4B8E8', onClick: () => setModal('allowance') },
   ];
 
@@ -215,7 +289,6 @@ export default function Home({ expenses, budgetSettings, currentMonth, onMonthCh
       <div style={{ background: 'linear-gradient(135deg, #1A1410 0%, #2E1E10 100%)', padding: '24px 20px 20px', color: 'white' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            {/* 월 전환 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
               <button onClick={() => onMonthChange('prev')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#A09080', fontSize: 16, width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#D0B8A0' }}>{formatMonth(currentMonth)}</span>
@@ -225,7 +298,6 @@ export default function Home({ expenses, budgetSettings, currentMonth, onMonthCh
               이현 <span style={{ color: '#C0622A' }}>❤️</span> 혜원
             </h1>
           </div>
-          {/* 이번달 남은 금액 */}
           <div style={{ background: remaining >= 0 ? 'rgba(95,138,110,0.3)' : 'rgba(217,64,64,0.3)', border: `1px solid ${remaining >= 0 ? 'rgba(95,138,110,0.5)' : 'rgba(217,64,64,0.5)'}`, borderRadius: 12, padding: '8px 12px', textAlign: 'center', minWidth: 100 }}>
             <p style={{ fontSize: 10, color: '#A09080', marginBottom: 3 }}>이번달 남은 금액</p>
             <p style={{ fontSize: 17, fontWeight: 700, color: remaining >= 0 ? '#7FD4A0' : '#FF8080' }}>
@@ -234,7 +306,6 @@ export default function Home({ expenses, budgetSettings, currentMonth, onMonthCh
           </div>
         </div>
 
-        {/* 요약 칩 — 클릭 가능 */}
         <div style={{ display: 'flex', gap: 6, marginTop: 16, flexWrap: 'wrap' }}>
           {summaryCards.map(item => (
             <button key={item.label} onClick={item.onClick}
@@ -247,46 +318,59 @@ export default function Home({ expenses, budgetSettings, currentMonth, onMonthCh
       </div>
 
       <div style={{ padding: '14px 14px 0' }}>
-        {/* 저축·투자 카드 */}
+        {/* 저축·투자 + 누적 복리 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-          {[
-            { label: '💚 저축', target: budgetSettings.savings, actual: budgetSettings.savings },
-            { label: '📈 투자', target: budgetSettings.investment, actual: budgetSettings.investment },
-          ].map(item => (
-            <div key={item.label} className="card" style={{ padding: 14 }}>
-              <p style={{ fontSize: 12, color: '#9A8A7A', marginBottom: 5 }}>{item.label}</p>
-              <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 7 }}>
-                {item.actual.toLocaleString('ko-KR')}<span style={{ fontSize: 10, color: '#9A8A7A' }}>원</span>
-              </p>
-              <div className="budget-bar-track">
-                <div className="budget-bar-fill" style={{ width: '100%', background: '#5F8A6E' }} />
-              </div>
-              <p style={{ fontSize: 10, color: '#5F8A6E', marginTop: 4, textAlign: 'right' }}>✓ 목표 달성!</p>
+          <div className="card" style={{ padding: 14 }}>
+            <p style={{ fontSize: 12, color: '#9A8A7A', marginBottom: 5 }}>💚 저축</p>
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{budgetSettings.savings.toLocaleString('ko-KR')}<span style={{ fontSize: 10, color: '#9A8A7A' }}>원</span></p>
+            <div className="budget-bar-track">
+              <div className="budget-bar-fill" style={{ width: '100%', background: '#5F8A6E' }} />
             </div>
-          ))}
+            <p style={{ fontSize: 10, color: '#5F8A6E', marginTop: 4 }}>✓ 목표 달성!</p>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <p style={{ fontSize: 12, color: '#9A8A7A', marginBottom: 5 }}>📈 투자</p>
+            <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{budgetSettings.investment.toLocaleString('ko-KR')}<span style={{ fontSize: 10, color: '#9A8A7A' }}>원</span></p>
+            <div className="budget-bar-track">
+              <div className="budget-bar-fill" style={{ width: '100%', background: '#3A6FA8' }} />
+            </div>
+            <p style={{ fontSize: 10, color: '#3A6FA8', marginTop: 4 }}>✓ 목표 달성!</p>
+          </div>
         </div>
 
-        {/* 변동지출 예산 온도계 */}
+        {/* 누적 복리 배너 */}
+        <div style={{ background: 'linear-gradient(135deg, #1A1410, #2E2010)', borderRadius: 16, padding: '14px 16px', marginBottom: 12, color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <p style={{ fontSize: 11, color: '#A09080', marginBottom: 4 }}>💰 {monthsElapsed}개월 누적 (연 4% 복리)</p>
+            <p style={{ fontSize: 20, fontWeight: 800, color: '#7FD4A0' }}>{accumulated.toLocaleString('ko-KR')}원</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p style={{ fontSize: 10, color: '#806050' }}>원금</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#D0B8A0' }}>{(monthlyTarget * monthsElapsed).toLocaleString('ko-KR')}원</p>
+            <p style={{ fontSize: 10, color: '#7FD4A0', marginTop: 2 }}>+이자 {(accumulated - monthlyTarget * monthsElapsed).toLocaleString('ko-KR')}원</p>
+          </div>
+        </div>
+
+        {/* 기타지출 예산 온도계 */}
         <div className="card" style={{ padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700 }}>🌡️ 변동지출 예산</h2>
+            <h2 style={{ fontSize: 15, fontWeight: 700 }}>🌡️ 기타지출 예산</h2>
             <span style={{ fontSize: 11, color: '#9A8A7A' }}>{formatKRW(spent)} / {formatKRW(variable)}</span>
           </div>
-          {CATEGORIES.map(cat => {
-            const budget = budgetSettings.catBudget[cat.id] || 0;
-            const actual = totals[cat.id] || 0;
-            if (budget === 0 && actual === 0) return null;
-            const pct = budget > 0 ? actual / budget : actual > 0 ? 1 : 0;
+          {(Array.isArray(budgetSettings.catBudget) ? budgetSettings.catBudget : []).map(item => {
+            const actual = totals[item.categoryId] || 0;
+            if (item.amount === 0 && actual === 0) return null;
+            const pct = item.amount > 0 ? actual / item.amount : actual > 0 ? 1 : 0;
             return (
-              <div key={cat.id} style={{ marginBottom: 11 }}>
+              <div key={item.id} style={{ marginBottom: 11 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontSize: 13 }}>{getCatLabel(cat.id)}</span>
+                  <span style={{ fontSize: 13 }}>{getCatLabel(item.categoryId)}</span>
                   <span style={{ fontSize: 11, color: '#9A8A7A' }}>
                     {actual > 0 ? actual.toLocaleString('ko-KR') : '–'}
-                    {budget > 0 && ` / ${budget.toLocaleString('ko-KR')}`}
+                    {item.amount > 0 && ` / ${item.amount.toLocaleString('ko-KR')}`}
                   </span>
                 </div>
-                {budget > 0 && (
+                {item.amount > 0 && (
                   <div className="budget-bar-track">
                     <div className="budget-bar-fill" style={{ width: `${Math.min(pct * 100, 100)}%`, background: getBarColor(pct) }} />
                   </div>
@@ -298,33 +382,46 @@ export default function Home({ expenses, budgetSettings, currentMonth, onMonthCh
           })}
         </div>
 
-        {/* 최근 지출 */}
-        <div className="card" style={{ padding: 16, marginBottom: 14 }}>
+        {/* 최근 지출 - 스와이프 삭제 */}
+        <div className="card" style={{ padding: 16, marginBottom: 14, overflow: 'hidden' }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>📅 최근 지출</h2>
           {recentFive.length === 0 ? (
             <p style={{ fontSize: 13, color: '#9A8A7A', textAlign: 'center', padding: '12px 0' }}>아직 지출 내역이 없어요 ✨</p>
           ) : recentFive.map(e => (
-            <div key={e.id} onClick={() => setModal({ type: 'expense', expense: e })}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #F0EBE3', cursor: 'pointer' }}>
-              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${getCatColor(e.category)}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
-                {getCatLabel(e.category).split(' ')[0]}
+            <SwipeRow
+              key={e.id}
+              onDelete={() => onDeleteExpense(e.id)}
+              onClick={() => setModal({ type: 'expense', expense: e })}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #F0EBE3' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${getCatColor(e.category)}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                  {getCatLabel(e.category).split(' ')[0]}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 1 }}>{e.merchant}</p>
+                  <p style={{ fontSize: 11, color: '#9A8A7A' }}>{e.date.slice(5).replace('-', '/')} · {e.person}</p>
+                </div>
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#D94040' }}>-{e.amount.toLocaleString('ko-KR')}</p>
+                  <p style={{ fontSize: 10, color: '#C0D0C0' }}>← 밀어서 삭제</p>
+                </div>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 1 }}>{e.merchant}</p>
-                <p style={{ fontSize: 11, color: '#9A8A7A' }}>{e.date.slice(5).replace('-', '/')} · {e.person}</p>
-              </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#D94040' }}>-{e.amount.toLocaleString('ko-KR')}</p>
-                <p style={{ fontSize: 10, color: '#C0D0C0' }}>탭해서 수정</p>
-              </div>
-            </div>
+            </SwipeRow>
           ))}
         </div>
       </div>
 
       {/* ── 모달들 ── */}
       {modal === 'income' && <IncomeModal settings={budgetSettings} onSave={onBudgetUpdate} onClose={() => setModal(null)} />}
-      {modal === 'fixed' && <FixedModal settings={budgetSettings} onClose={() => setModal(null)} />}
+      {modal === 'fixed' && (
+        <FixedModal
+          settings={budgetSettings}
+          currentMonth={currentMonth}
+          monthlyFixed={monthlyFixed}
+          onSave={onMonthlyFixedUpdate}
+          onClose={() => setModal(null)}
+        />
+      )}
       {modal === 'savings' && <SavingsModal settings={budgetSettings} onSave={onBudgetUpdate} onClose={() => setModal(null)} />}
       {modal === 'allowance' && <AllowanceModal settings={budgetSettings} onSave={onBudgetUpdate} onClose={() => setModal(null)} />}
       {modal?.type === 'expense' && (
