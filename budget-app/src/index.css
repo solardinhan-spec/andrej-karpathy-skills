@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --ink: #1A1410;
-  --paper: #FAF8F3;
-  --warm: #F2EBE0;
+  --ink: #111111;
+  --paper: #FFFFFF;
+  --warm: #F5F5F5;
   --rust: #C0622A;
-  --sage: #5F8A6E;
-  --gold: #C8960A;
-  --muted: #7A6A5A;
-  --line: #E0D5C8;
+  --sage: #16A34A;
+  --gold: #D97706;
+  --muted: #6B7280;
+  --line: #E5E7EB;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: 'Noto Sans KR', sans-serif;
-  background: #EDE6DC;
+  background: #EFEFEF;
   color: var(--ink);
   overscroll-behavior: none;
   -webkit-tap-highlight-color: transparent;
@@ -26,18 +26,18 @@ body {
   min-height: 100dvh;
   display: flex;
   justify-content: center;
-  background: linear-gradient(160deg, #EDE6DC 0%, #E2D9CF 100%);
+  background: #EFEFEF;
 }
 
 #app-shell {
   width: 100%;
   max-width: 430px;
   min-height: 100dvh;
-  background: #F5F0E8;
+  background: #FAFAFA;
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 60px rgba(26,20,16,0.15);
+  box-shadow: 0 0 40px rgba(0,0,0,0.10);
 }
 
 .screen {
@@ -54,11 +54,12 @@ body {
   transform: translateX(-50%);
   width: 100%;
   max-width: 430px;
-  background: white;
+  background: #FFFFFF;
   border-top: 1px solid var(--line);
   display: flex;
   z-index: 50;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -1px 0 #E5E7EB;
 }
 
 .nav-btn {
@@ -82,14 +83,15 @@ body {
 .nav-label { font-size: 10px; font-weight: 600; letter-spacing: -0.02em; }
 
 .card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 2px 16px rgba(26,20,16,0.08);
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 12px rgba(0,0,0,0.04);
+  border: 1px solid #F3F4F6;
 }
 
 .budget-bar-track {
-  height: 10px;
-  background: #F0EBE3;
+  height: 8px;
+  background: #F3F4F6;
   border-radius: 99px;
   overflow: hidden;
 }

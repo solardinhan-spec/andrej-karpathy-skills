@@ -13,7 +13,7 @@ import {
 const CUSTOM_TOOLTIP = ({ active, payload }) => {
   if (active && payload?.length) {
     return (
-      <div style={{ background: 'white', border: '1px solid #E0D5C8', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
+      <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
         {payload.map(p => (
           <p key={p.name} style={{ color: p.color, marginBottom: 2 }}>{p.name}: {p.value.toLocaleString('ko-KR')}원</p>
         ))}
@@ -73,7 +73,7 @@ export default function Report({ expenses, budgetSettings, currentMonth, monthly
   return (
     <div className="screen" style={{ padding: '0 14px 80px' }}>
       <div style={{ padding: '24px 0 16px' }}>
-        <p style={{ fontSize: 12, color: '#9A8A7A', marginBottom: 4 }}>{formatMonth(currentMonth)}</p>
+        <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 4 }}>{formatMonth(currentMonth)}</p>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>📊 월별 리포트</h1>
       </div>
 
@@ -86,9 +86,9 @@ export default function Report({ expenses, budgetSettings, currentMonth, monthly
           { label: '지출 건수', value: `${monthExp.length}건`, sub: `이현 ${monthExp.filter(e => e.person === '이현').length} / 혜원 ${monthExp.filter(e => e.person === '혜원').length}`, ok: true },
         ].map(item => (
           <div key={item.label} className="card" style={{ padding: 14 }}>
-            <p style={{ fontSize: 11, color: '#9A8A7A', marginBottom: 4 }}>{item.label}</p>
-            <p style={{ fontSize: 17, fontWeight: 800, color: item.ok ? '#1A1410' : '#D94040', marginBottom: 3 }}>{item.value}</p>
-            <p style={{ fontSize: 11, color: item.ok ? '#5F8A6E' : '#E8A060' }}>{item.sub}</p>
+            <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 4 }}>{item.label}</p>
+            <p style={{ fontSize: 17, fontWeight: 800, color: item.ok ? '#111111' : '#EF4444', marginBottom: 3 }}>{item.value}</p>
+            <p style={{ fontSize: 11, color: item.ok ? '#16A34A' : '#E8A060' }}>{item.sub}</p>
           </div>
         ))}
       </div>
@@ -96,7 +96,7 @@ export default function Report({ expenses, budgetSettings, currentMonth, monthly
       {/* 고정지출 내역 */}
       <div className="card" style={{ padding: 16, marginBottom: 14 }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>📋 고정지출 내역</h2>
-        <p style={{ fontSize: 11, color: '#9A8A7A', marginBottom: 12 }}>이현 {formatKRW(fixedIhyeon)} + 혜원 {formatKRW(fixedHyewon)} = 합계 {formatKRW(fixedTotal)}</p>
+        <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>이현 {formatKRW(fixedIhyeon)} + 혜원 {formatKRW(fixedHyewon)} = 합계 {formatKRW(fixedTotal)}</p>
         {['이현', '혜원'].map(person => {
           const items = budgetSettings.fixed.filter(f => f.person === person);
           return (
@@ -105,7 +105,7 @@ export default function Report({ expenses, budgetSettings, currentMonth, monthly
               {items.map(f => {
                 const amt = ovr[f.id] !== undefined ? ovr[f.id] : f.amount;
                 return (
-                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #F5F0E8', fontSize: 13 }}>
+                  <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #F5F5F5', fontSize: 13 }}>
                     <span>{f.name}</span>
                     <span style={{ fontWeight: 600 }}>{amt.toLocaleString('ko-KR')}원</span>
                   </div>
@@ -122,20 +122,20 @@ export default function Report({ expenses, budgetSettings, currentMonth, monthly
           <h2 style={{ fontSize: 14, fontWeight: 700, paddingLeft: 10, marginBottom: 12 }}>🌡️ 기타지출 vs 예산</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={barData} barGap={3} margin={{ top: 0, right: 8, left: -22, bottom: 0 }}>
-              <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9A8A7A' }} tickLine={false} axisLine={false} interval={0} />
-              <YAxis tick={{ fontSize: 8, fill: '#B0A090' }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? `${v / 1000}k` : v} />
+              <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9CA3AF' }} tickLine={false} axisLine={false} interval={0} />
+              <YAxis tick={{ fontSize: 8, fill: '#9CA3AF' }} tickLine={false} axisLine={false} tickFormatter={v => v >= 1000 ? `${v / 1000}k` : v} />
               <Tooltip content={<CUSTOM_TOOLTIP />} />
-              <Bar dataKey="예산" fill="#E0D5C8" radius={[3, 3, 0, 0]} maxBarSize={16} />
+              <Bar dataKey="예산" fill="#E5E7EB" radius={[3, 3, 0, 0]} maxBarSize={16} />
               <Bar dataKey="실지출" radius={[3, 3, 0, 0]} maxBarSize={16}>
                 {barData.map((entry, i) => (
-                  <Cell key={i} fill={entry.실지출 > entry.예산 ? '#D94040' : entry.color} />
+                  <Cell key={i} fill={entry.실지출 > entry.예산 ? '#EF4444' : entry.color} />
                 ))}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 14, marginTop: 4 }}>
-            {[['#E0D5C8', '예산'], ['#C0622A', '실지출']].map(([c, l]) => (
-              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9A8A7A' }}>
+            {[['#E5E7EB', '예산'], ['#C0622A', '실지출']].map(([c, l]) => (
+              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#9CA3AF' }}>
                 <div style={{ width: 10, height: 10, background: c, borderRadius: 2 }} />{l}
               </div>
             ))}
@@ -147,7 +147,7 @@ export default function Report({ expenses, budgetSettings, currentMonth, monthly
       {pieData.length > 0 && (
         <div className="card" style={{ padding: 14, marginBottom: 14 }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>전체 지출 구조</h2>
-          <p style={{ fontSize: 11, color: '#9A8A7A', marginBottom: 12 }}>고정지출 + 기타지출 포함</p>
+          <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>고정지출 + 기타지출 포함</p>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={3} dataKey="value">
@@ -163,26 +163,26 @@ export default function Report({ expenses, budgetSettings, currentMonth, monthly
       {/* 커플 한마디 */}
       <div className="card" style={{ padding: 16, marginBottom: 14 }}>
         <h2 style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>💬 커플 한마디</h2>
-        <p style={{ fontSize: 12, color: '#9A8A7A', marginBottom: 12 }}>이번 달 서로에게 한 줄 남기기</p>
+        <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 12 }}>이번 달 서로에게 한 줄 남기기</p>
         {coupleMessages.filter(m => m.month === currentMonth).map(m => (
-          <div key={m.id} style={{ background: '#FAF8F3', borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
-            <p style={{ fontSize: 11, color: '#9A8A7A', marginBottom: 3 }}>{m.person}</p>
+          <div key={m.id} style={{ background: '#F9FAFB', borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
+            <p style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 3 }}>{m.person}</p>
             <p style={{ fontSize: 14 }}>{m.text}</p>
           </div>
         ))}
-        {msgSaved && <p className="slide-up" style={{ color: '#5F8A6E', fontSize: 13, marginBottom: 8, fontWeight: 600 }}>💚 저장됐어요!</p>}
+        {msgSaved && <p className="slide-up" style={{ color: '#16A34A', fontSize: 13, marginBottom: 8, fontWeight: 600 }}>💚 저장됐어요!</p>}
         <form onSubmit={handleMsgSubmit}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
             {['이현', '혜원'].map(p => (
               <button type="button" key={p} onClick={() => setMsg(m => ({ ...m, person: p }))}
-                style={{ padding: '6px 14px', borderRadius: 99, border: `2px solid ${msg.person === p ? '#C0622A' : '#E0D5C8'}`, background: msg.person === p ? '#C0622A' : 'white', color: msg.person === p ? 'white' : '#7A6A5A', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ padding: '6px 14px', borderRadius: 99, border: `2px solid ${msg.person === p ? '#C0622A' : '#E5E7EB'}`, background: msg.person === p ? '#C0622A' : 'white', color: msg.person === p ? 'white' : '#6B7280', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {p}
               </button>
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <input type="text" placeholder="이번 달 한마디..." value={msg.text} onChange={e => setMsg(m => ({ ...m, text: e.target.value }))}
-              style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E0D5C8', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+              style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
             <button type="submit" style={{ padding: '10px 16px', borderRadius: 10, border: 'none', background: '#C0622A', color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>전송</button>
           </div>
         </form>

@@ -31,18 +31,18 @@ export default function Input({ onAdd, currentMonth, budgetSettings }) {
   }
 
   const variable = calcVariable(budgetSettings);
-  const labelStyle = { fontSize: 12, fontWeight: 600, color: '#7A6A5A', marginBottom: 6, display: 'block' };
-  const inputStyle = { width: '100%', padding: '12px 14px', borderRadius: 12, border: '1.5px solid #E0D5C8', fontSize: 15, background: 'white', outline: 'none', fontFamily: 'inherit', color: '#1A1410' };
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: '#6B7280', marginBottom: 6, display: 'block' };
+  const inputStyle = { width: '100%', padding: '12px 14px', borderRadius: 12, border: '1.5px solid #E5E7EB', fontSize: 15, background: 'white', outline: 'none', fontFamily: 'inherit', color: '#111111' };
 
   return (
     <div className="screen" style={{ padding: '0 16px 80px' }}>
       <div style={{ padding: '24px 0 20px' }}>
-        <p style={{ fontSize: 12, color: '#9A8A7A', marginBottom: 4 }}>{formatMonth(currentMonth)}</p>
+        <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 4 }}>{formatMonth(currentMonth)}</p>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>✏️ 지출 입력</h1>
       </div>
 
       {saved && (
-        <div className="slide-up" style={{ background: '#5F8A6E', color: 'white', padding: '12px 16px', borderRadius: 12, marginBottom: 16, fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
+        <div className="slide-up" style={{ background: '#16A34A', color: 'white', padding: '12px 16px', borderRadius: 12, marginBottom: 16, fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
           🎉 저장됐어요!
         </div>
       )}
@@ -53,8 +53,8 @@ export default function Input({ onAdd, currentMonth, budgetSettings }) {
             <label style={labelStyle}>💰 금액</label>
             <div style={{ position: 'relative' }}>
               <input type="text" inputMode="numeric" placeholder="0" value={amountDisplay} onChange={handleAmountChange} required
-                style={{ ...inputStyle, fontSize: 24, fontWeight: 700, paddingRight: 40, color: form.amount ? '#C0622A' : '#B0A090' }} />
-              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: '#9A8A7A' }}>원</span>
+                style={{ ...inputStyle, fontSize: 24, fontWeight: 700, paddingRight: 40, color: form.amount ? '#C0622A' : '#9CA3AF' }} />
+              <span style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 15, color: '#9CA3AF' }}>원</span>
             </div>
           </div>
 
@@ -63,7 +63,7 @@ export default function Input({ onAdd, currentMonth, budgetSettings }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {CATEGORIES.map(cat => (
                 <button type="button" key={cat.id} onClick={() => setForm(f => ({ ...f, category: cat.id }))}
-                  style={{ padding: '7px 14px', borderRadius: 99, border: `2px solid ${form.category === cat.id ? cat.color : '#E0D5C8'}`, background: form.category === cat.id ? `${cat.color}18` : 'white', color: form.category === cat.id ? cat.color : '#7A6A5A', fontSize: 13, fontWeight: form.category === cat.id ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                  style={{ padding: '7px 14px', borderRadius: 99, border: `2px solid ${form.category === cat.id ? cat.color : '#E5E7EB'}`, background: form.category === cat.id ? `${cat.color}18` : 'white', color: form.category === cat.id ? cat.color : '#6B7280', fontSize: 13, fontWeight: form.category === cat.id ? 700 : 400, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
                   {cat.label}
                 </button>
               ))}
@@ -85,7 +85,7 @@ export default function Input({ onAdd, currentMonth, budgetSettings }) {
               <div style={{ display: 'flex', gap: 6 }}>
                 {['이현', '혜원'].map(p => (
                   <button type="button" key={p} onClick={() => setForm(f => ({ ...f, person: p }))}
-                    style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: `2px solid ${form.person === p ? '#C0622A' : '#E0D5C8'}`, background: form.person === p ? '#C0622A' : 'white', color: form.person === p ? 'white' : '#7A6A5A', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                    style={{ flex: 1, padding: '11px 0', borderRadius: 12, border: `2px solid ${form.person === p ? '#C0622A' : '#E5E7EB'}`, background: form.person === p ? '#C0622A' : 'white', color: form.person === p ? 'white' : '#6B7280', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
                     {p}
                   </button>
                 ))}
@@ -99,16 +99,16 @@ export default function Input({ onAdd, currentMonth, budgetSettings }) {
           </div>
 
           <button type="submit" disabled={!form.amount || !form.merchant}
-            style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: form.amount && form.merchant ? 'linear-gradient(135deg, #C0622A, #E8803A)' : '#E0D5C8', color: form.amount && form.merchant ? 'white' : '#A09080', fontSize: 16, fontWeight: 700, cursor: form.amount && form.merchant ? 'pointer' : 'default', fontFamily: 'inherit', transition: 'all 0.2s', boxShadow: form.amount && form.merchant ? '0 4px 16px rgba(192,98,42,0.35)' : 'none' }}>
+            style={{ width: '100%', padding: '16px', borderRadius: 14, border: 'none', background: form.amount && form.merchant ? 'linear-gradient(135deg, #C0622A, #E8803A)' : '#E5E7EB', color: form.amount && form.merchant ? 'white' : '#9CA3AF', fontSize: 16, fontWeight: 700, cursor: form.amount && form.merchant ? 'pointer' : 'default', fontFamily: 'inherit', transition: 'all 0.2s', boxShadow: form.amount && form.merchant ? '0 4px 16px rgba(192,98,42,0.35)' : 'none' }}>
             저장하기 💾
           </button>
         </div>
       </form>
 
-      <div style={{ margin: '16px 0', padding: '14px 16px', background: 'rgba(95,138,110,0.1)', borderRadius: 12, borderLeft: '3px solid #5F8A6E' }}>
-        <p style={{ fontSize: 12, color: '#5F8A6E', fontWeight: 600, marginBottom: 4 }}>💡 절약 팁</p>
-        <p style={{ fontSize: 12, color: '#7A6A5A' }}>
-          {formatMonth(currentMonth)} 기타지출 예산은 <strong style={{ color: '#1A1410' }}>{variable.toLocaleString('ko-KR')}원</strong>이에요.<br />
+      <div style={{ margin: '16px 0', padding: '14px 16px', background: 'rgba(95,138,110,0.1)', borderRadius: 12, borderLeft: '3px solid #16A34A' }}>
+        <p style={{ fontSize: 12, color: '#16A34A', fontWeight: 600, marginBottom: 4 }}>💡 절약 팁</p>
+        <p style={{ fontSize: 12, color: '#6B7280' }}>
+          {formatMonth(currentMonth)} 기타지출 예산은 <strong style={{ color: '#111111' }}>{variable.toLocaleString('ko-KR')}원</strong>이에요.<br />
           함께 아끼면 더 빨리 모을 수 있어요! 💪
         </p>
       </div>
