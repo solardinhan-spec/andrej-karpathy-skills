@@ -112,6 +112,19 @@ $$;
 grant execute on function public.create_household(text) to authenticated, anon;
 grant execute on function public.join_household(text)   to authenticated, anon;
 
--- 5) 실시간 동기화 활성화 ---------------------------------------------
-alter publication supabase_realtime add table public.entries;
-alter publication supabase_realtime add table public.savings_cards;
+-- 5) 실시간 동기화 활성화 (재실행해도 안전하도록 멱등 처리) -----------
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'entries'
+  ) then
+    alter publication supabase_realtime add table public.entries;
+  end if;
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'savings_cards'
+  ) then
+    alter publication supabase_realtime add table public.savings_cards;
+  end if;
+end $$;
