@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { isCloud, supabase } from './supabase.js'
+import { isCloud, supabase, configError } from './supabase.js'
 import { MONTH_KEYS } from './constants.js'
 import { buildSeed } from './seed.js'
 
@@ -100,6 +100,11 @@ export function useBudget() {
     }
 
     async function initCloud() {
+      if (configError || !supabase) {
+        setError(configError || 'Supabase 설정을 확인해주세요.')
+        setStatus('error')
+        return
+      }
       try {
         let { data: { session } } = await supabase.auth.getSession()
         if (!session) {
