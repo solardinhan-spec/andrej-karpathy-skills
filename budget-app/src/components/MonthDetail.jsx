@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { won, OWN, FCAT, BIGS, OWNERS, SAV } from '../lib/constants.js'
+import { won, OWN, FCAT, BIGS, OWNERS, savMeta } from '../lib/constants.js'
 import { sum } from '../lib/compute.js'
 
 const ownerOf = (o) => OWN[o] || OWN.기타
@@ -52,7 +52,7 @@ function buildRow(item, big, noPill) {
   const base = { id: item.id, title: item.title, amtText: won(item.amount) + '원', sub: item.memo || '', tag: '', tagStyle: null, accent: undefined }
   let tile
   if (big === 'income') tile = { e: '💰', bg: '#E8F3FF' }
-  else if (big === 'savings') { const s = SAV.find((x) => x[0] === item.title); tile = { e: s ? s[1] : '🐷', bg: s ? s[2] : '#F0EBFE' } }
+  else if (big === 'savings') { const m = savMeta(item.cat || item.title); tile = { e: m.emoji, bg: m.bg } }
   else {
     if (item.kind === '고정') {
       const c = FCAT[item.cat] || '#868E96'

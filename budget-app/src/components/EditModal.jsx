@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { won, OWN, FCAT, CATS } from '../lib/constants.js'
+import { won, OWN, FCAT, CATS, SAV_CATS, savMeta } from '../lib/constants.js'
 
 const overlay = { position: 'absolute', inset: 0, zIndex: 52, background: 'rgba(20,30,50,.4)', animation: 'fadeIn .2s' }
 const sheet = { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 53, maxHeight: '88%', overflowY: 'auto', background: '#fff', borderRadius: '26px 26px 0 0', padding: '10px 20px calc(28px + env(safe-area-inset-bottom))', animation: 'sheetUp .32s cubic-bezier(.2,.85,.25,1)' }
@@ -13,6 +13,7 @@ export default function EditModal({ target, onClose, onSave }) {
   const hasOwner = e.list !== 'savings'
   const hasKind = e.list === 'expense'
   const hasCat = e.list === 'expense' && e.kind === '고정'
+  const hasSavCat = e.list === 'savings'
   const ownerList = e.list === 'expense' ? ['이현', '혜원'] : ['이현', '혜원', '기타']
   const title = { income: '수입 수정', expense: '지출 수정', savings: '저축 수정' }[e.list]
   const amountText = e.amount ? won(parseInt((e.amount + '').replace(/[^\d]/g, '')) || 0) : ''
@@ -23,6 +24,7 @@ export default function EditModal({ target, onClose, onSave }) {
     const amt = parseInt((e.amount || '').toString().replace(/[^\d]/g, '')) || 0
     const patch = { title: e.name, amount: amt, memo: e.memo, owner: e.owner }
     if (e.list === 'expense') { patch.kind = e.kind; patch.cat = e.kind === '고정' ? e.cat : '' }
+    if (e.list === 'savings') { patch.cat = e.cat; if (!patch.title) patch.title = e.cat }
     onSave(e.list, e.id, patch)
   }
 
@@ -67,6 +69,19 @@ export default function EditModal({ target, onClose, onSave }) {
             <div className="noscroll" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
               {CATS.map((c) => { const col = FCAT[c]; const sel = e.cat === c; return (
                 <div key={c} className="press" onClick={() => set({ cat: c })} style={{ padding: '8px 13px', borderRadius: 11, fontSize: 13, fontWeight: 700, ...(sel ? { background: col, color: '#fff' } : { background: '#F2F4F6', color: '#4E5968' }) }}>{c}</div>
+              )})}
+            </div>
+          </>
+        )}
+
+        {hasSavCat && (
+          <>
+            <div style={labelStyle}>종류</div>
+            <div className="noscroll" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+              {SAV_CATS.map((c) => { const sel = e.cat === c; const m = savMeta(c); return (
+                <div key={c} className="press" onClick={() => set({ cat: c })} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 11, fontSize: 13, fontWeight: 700, ...(sel ? { background: '#191F28', color: '#fff' } : { background: '#F2F4F6', color: '#4E5968' }) }}>
+                  <span>{m.emoji}</span>{c}
+                </div>
               )})}
             </div>
           </>

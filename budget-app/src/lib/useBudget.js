@@ -209,5 +209,33 @@ export function useBudget() {
     })
   }, [mode, reloadCloud])
 
-  return { mode, status, error, household, data, createHousehold, joinHousehold, addEntry, updateEntry, deleteEntry }
+  // Upsert a savings asset card (저축 탭) identified by month + key.
+  const updateSavingsCard = useCallback(async (month, key, patch) => {
+    if (mode === 'cloud') {
+      const hid = hidRef.current
+      const { data: existing } = await supabase
+        .from('savings_cards').select('id').eq('household_id', hid).eq('month', month).eq('key', key).maybeSingle()
+      if (existing) {
+        const { error: e } = await supabase.from('savings_cards').update(patch).eq('id', existing.id)
+        if (e) throw e
+      } else {
+        const { error: e } = await supabase.from('savings_cards').insert({ household_id: hid, month, key, prev: patch.prev || 0, curr: patch.curr || 0 })
+        if (e) throw e
+      }
+      await reloadCloud(hid)
+      return
+    }
+    setData((prev) => {
+      const cards = prev[month].savingsCards
+      const exists = cards.some((c) => c.key === key)
+      const nextCards = exists
+        ? cards.map((c) => (c.key === key ? { ...c, ...patch } : c))
+        : [...cards, { key, prev: patch.prev || 0, curr: patch.curr || 0 }]
+      const next = { ...prev, [month]: { ...prev[month], savingsCards: nextCards } }
+      try { localStorage.setItem(LOCAL_KEY, JSON.stringify(next)) } catch (_) {}
+      return next
+    })
+  }, [mode, reloadCloud])
+
+  return { mode, status, error, household, data, createHousehold, joinHousehold, addEntry, updateEntry, deleteEntry, updateSavingsCard }
 }

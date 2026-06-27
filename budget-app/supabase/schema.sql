@@ -81,11 +81,16 @@ returns public.households language plpgsql security definer set search_path = pu
 declare
   h public.households;
   code text;
+  chars constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; -- 헷갈리는 글자(0,O,1,I,L) 제외
+  i int;
 begin
   if auth.uid() is null then raise exception 'auth required'; end if;
-  -- 6자리 영숫자 초대 코드 (헷갈리는 글자 제외)
+  -- 6자리 영숫자 초대 코드 (pgcrypto 의존 없이 random()으로 생성)
   loop
-    code := upper(substr(translate(encode(gen_random_bytes(8),'base64'),'+/=OIl01','ABCDEFGH'),1,6));
+    code := '';
+    for i in 1..6 loop
+      code := code || substr(chars, floor(random() * length(chars))::int + 1, 1);
+    end loop;
     exit when not exists (select 1 from public.households where invite_code = code);
   end loop;
   insert into public.households (name, invite_code) values (coalesce(nullif(p_name,''),'우리집 가계부'), code)
