@@ -6,12 +6,29 @@ import MonthScreen from './screens/MonthScreen';
 import SavingsScreen from './screens/SavingsScreen';
 import StatsScreen from './screens/StatsScreen';
 
+const ICONS = {
+  home: <path d="M3 10.5 12 3l9 7.5M5 9.5V20h5v-6h4v6h5V9.5" />,
+  month: <><rect x="3" y="4.5" width="18" height="16" rx="3" /><path d="M3 9h18M8 3v3M16 3v3" /></>,
+  savings: <><path d="M4 12a8 8 0 1 1 3.2 6.4L4 20l.8-3.2A8 8 0 0 1 4 12Z" /><circle cx="9" cy="12" r="1" /><circle cx="15" cy="12" r="1" /></>,
+  stats: <path d="M5 20V10M12 20V4M19 20v-7" />,
+};
+
 const TABS = [
-  { id: 'home', label: '홈', icon: '🏠' },
-  { id: 'month', label: '월별', icon: '📅' },
-  { id: 'savings', label: '저축', icon: '🐷' },
-  { id: 'stats', label: '통계', icon: '📊' },
+  { id: 'home', label: '홈' },
+  { id: 'month', label: '월별' },
+  { id: 'savings', label: '저축' },
+  { id: 'stats', label: '통계' },
 ];
+
+function TabIcon({ id, active }) {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+      stroke={active ? '#3182F6' : '#B0B8C1'} strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round">
+      {ICONS[id]}
+    </svg>
+  );
+}
 
 const blankItem = (bucket) => {
   if (bucket === 'income') return { id: newId('i'), owner: '이현', title: '', amount: 0, memo: '' };
@@ -94,10 +111,10 @@ export default function App() {
           const active = tab === t.id;
           return (
             <button key={t.id} onClick={() => setTab(t.id)} style={{
-              flex: 1, padding: '11px 0 13px', background: 'none', border: 'none',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+              flex: 1, padding: '10px 0 12px', background: 'none', border: 'none',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
             }}>
-              <span style={{ fontSize: 20, filter: active ? 'none' : 'grayscale(1)', opacity: active ? 1 : .5 }}>{t.icon}</span>
+              <TabIcon id={t.id} active={active} />
               <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? '#3182F6' : 'var(--faint)' }}>{t.label}</span>
             </button>
           );
