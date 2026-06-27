@@ -1,0 +1,47 @@
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: #E5E8EB;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  color: #191F28;
+  overscroll-behavior-y: none;
+}
+input { font-family: inherit; }
+
+/* App shell: full viewport, centered with a max width for tablets/desktop. */
+.app {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100%;
+  margin: 0 auto;
+  background: #F2F4F6;
+  overflow: hidden;
+}
+
+.scroll {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+.noscroll::-webkit-scrollbar { display: none; }
+.noscroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+.swrow { position: relative; overflow: hidden; background: #fff; }
+.swrow .swcontent {
+  transition: transform .28s cubic-bezier(.2,.8,.2,1);
+  background: #fff; position: relative; z-index: 1; touch-action: pan-y;
+}
+.swrow[data-open="true"] .swcontent { transform: translateX(-84px); }
+
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.press:active { transform: scale(.97); opacity: .9; }
+.tabbtn:active { opacity: .6; }
+button { font-family: inherit; border: none; background: none; cursor: pointer; }
