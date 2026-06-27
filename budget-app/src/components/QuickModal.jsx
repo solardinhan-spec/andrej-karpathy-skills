@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { won, OWN, FCAT, CATS } from '../lib/constants.js'
+import { won, OWN, FCAT, CATS, SAV_CATS, savMeta } from '../lib/constants.js'
 
 const overlay = { position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(20,30,50,.4)', animation: 'fadeIn .2s' }
 const sheet = { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 51, background: '#fff', borderRadius: '26px 26px 0 0', padding: '10px 20px calc(28px + env(safe-area-inset-bottom))', animation: 'sheetUp .32s cubic-bezier(.2,.85,.25,1)' }
@@ -34,9 +34,9 @@ export default function QuickModal({ onClose, onSave }) {
       <div style={sheet}>
         <div style={{ width: 38, height: 4, borderRadius: 3, background: '#E1E5E9', margin: '0 auto 14px' }} />
         <div style={{ display: 'flex', background: '#F2F4F6', borderRadius: 12, padding: 4, marginBottom: 16 }}>
-          <div className="press" onClick={() => patch({ type: 'expense' })} style={tabStyle('expense', '#F04452')}>지출</div>
+          <div className="press" onClick={() => patch({ type: 'expense', cat: '생활' })} style={tabStyle('expense', '#F04452')}>지출</div>
           <div className="press" onClick={() => patch({ type: 'income' })} style={tabStyle('income', '#3182F6')}>수입</div>
-          <div className="press" onClick={() => patch({ type: 'savings' })} style={tabStyle('savings', '#845EF7')}>저축</div>
+          <div className="press" onClick={() => patch({ type: 'savings', cat: '저축' })} style={tabStyle('savings', '#845EF7')}>저축</div>
         </div>
 
         <div style={{ textAlign: 'center', padding: '2px 0 14px' }}>
@@ -48,6 +48,16 @@ export default function QuickModal({ onClose, onSave }) {
 
         <input value={q.title} onChange={(e) => patch({ title: e.target.value })} placeholder="내용 (예: 마트 장보기)"
           style={{ width: '100%', border: 'none', background: '#F2F4F6', borderRadius: 12, padding: '13px 15px', fontSize: 15, fontWeight: 600, color: '#191F28', outline: 'none', marginBottom: 10 }} />
+
+        {q.type === 'savings' && (
+          <div className="noscroll" style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
+            {SAV_CATS.map((c) => { const sel = q.cat === c; const m = savMeta(c); return (
+              <div key={c} className="press" onClick={() => patch({ cat: c })} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 11, fontSize: 13, fontWeight: 700, ...(sel ? { background: '#191F28', color: '#fff' } : { background: '#F2F4F6', color: '#4E5968' }) }}>
+                <span>{m.emoji}</span>{c}
+              </div>
+            )})}
+          </div>
+        )}
 
         {q.type === 'expense' && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>

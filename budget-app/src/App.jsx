@@ -17,10 +17,10 @@ function Center({ children }) {
 }
 
 export default function App() {
-  const { mode, status, error, household, data, createHousehold, joinHousehold, addEntry, updateEntry, deleteEntry } = useBudget()
+  const { mode, status, error, household, data, createHousehold, joinHousehold, addEntry, updateEntry, deleteEntry, updateSavingsCard } = useBudget()
 
   const [tab, setTab] = useState('home')
-  const [monthIdx, setMonthIdx] = useState(1)
+  const [monthIdx, setMonthIdx] = useState(0)
   const [big, setBig] = useState('income')
   const [expOwner, setExpOwner] = useState('전체')
   const [collapsed, setCollapsed] = useState({})
@@ -47,7 +47,7 @@ export default function App() {
     const item = data[mk][list].find((x) => x.id === id)
     if (!item) return
     setSwipeOpenId(null)
-    setEdit({ list, id, name: item.title, amount: String(item.amount), memo: item.memo || '', owner: item.owner, kind: item.kind || '변동', cat: item.cat || '생활' })
+    setEdit({ list, id, name: item.title, amount: String(item.amount), memo: item.memo || '', owner: item.owner, kind: item.kind || '변동', cat: item.cat || (list === 'savings' ? (item.title || '저축') : '생활') })
   }
 
   const onDelete = (list, id) => { deleteEntry(mk, list, id); setSwipeOpenId(null) }
@@ -55,10 +55,10 @@ export default function App() {
   const onAddItem = async () => {
     let item
     if (big === 'income') item = { owner: '이현', title: '새 수입', amount: 0, memo: '' }
-    else if (big === 'savings') item = { owner: '공동', title: '새 저축', amount: 0, memo: '' }
+    else if (big === 'savings') item = { owner: '공동', cat: '저축', title: '저축', amount: 0, memo: '' }
     else item = { owner: '이현', kind: '변동', cat: '', title: '새 지출', amount: 0, memo: '' }
     const id = await addEntry(mk, big, item)
-    setEdit({ list: big, id, name: item.title, amount: String(item.amount), memo: '', owner: item.owner, kind: item.kind || '변동', cat: item.cat || '생활' })
+    setEdit({ list: big, id, name: item.title, amount: String(item.amount), memo: '', owner: item.owner, kind: item.kind || '변동', cat: item.cat || (big === 'savings' ? '저축' : '생활') })
   }
 
   const saveQuick = async (q) => {
@@ -67,7 +67,7 @@ export default function App() {
     } else if (q.type === 'income') {
       await addEntry(mk, 'income', { owner: q.owner, title: q.title || (q.owner + ' 수입'), amount: q.amount, memo: q.memo || '' })
     } else {
-      await addEntry(mk, 'savings', { owner: '공동', title: q.title || '저축', amount: q.amount, memo: q.memo || '' })
+      await addEntry(mk, 'savings', { owner: '공동', cat: q.cat || '저축', title: q.title || q.cat || '저축', amount: q.amount, memo: q.memo || '' })
     }
     setQuickOpen(false)
   }
@@ -88,7 +88,7 @@ export default function App() {
             collapsed={collapsed} toggleCollapse={toggleCollapse} swipeOpenId={swipeOpenId} setSwipeOpenId={setSwipeOpenId}
             onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} monthLabel={monthLabel} />
         )}
-        {tab === 'savings' && <Savings d={d} monthLabel={monthLabel} />}
+        {tab === 'savings' && <Savings d={d} monthLabel={monthLabel} onSaveCard={(key, patch) => updateSavingsCard(mk, key, patch)} />}
         {tab === 'stats' && <Stats data={data} m={m} monthIdx={monthIdx} monthLabel={monthLabel} />}
       </div>
 
@@ -108,7 +108,7 @@ export default function App() {
 
       {quickOpen && <QuickModal onClose={() => setQuickOpen(false)} onSave={saveQuick} />}
       {edit && <EditModal target={edit} onClose={() => setEdit(null)} onSave={saveEdit} />}
-      {showSettings && <Settings mode={mode} household={household} onClose={() => setShowSettings(false)} />}
+      {showSettings && <Settings mode={mode} household={household} data={data} onClose={() => setShowSettings(false)} />}
     </div>
   )
 }

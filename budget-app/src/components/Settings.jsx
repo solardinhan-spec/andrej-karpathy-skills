@@ -1,14 +1,21 @@
 import { useState } from 'react'
+import { exportExcel } from '../lib/exportExcel.js'
 
 const overlay = { position: 'absolute', inset: 0, zIndex: 54, background: 'rgba(20,30,50,.4)', animation: 'fadeIn .2s' }
 const sheet = { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 55, background: '#fff', borderRadius: '26px 26px 0 0', padding: '10px 20px calc(28px + env(safe-area-inset-bottom))', animation: 'sheetUp .32s cubic-bezier(.2,.85,.25,1)' }
 
-export default function Settings({ mode, household, onClose }) {
+export default function Settings({ mode, household, data, onClose }) {
   const [copied, setCopied] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const code = household?.invite_code || ''
 
   const copy = async () => {
     try { await navigator.clipboard.writeText(code); setCopied(true); setTimeout(() => setCopied(false), 1500) } catch (_) {}
+  }
+
+  const onExport = async () => {
+    setExporting(true)
+    try { await exportExcel(data) } catch (e) { alert('내보내기에 실패했어요: ' + (e?.message || e)) } finally { setExporting(false) }
   }
 
   return (
@@ -35,7 +42,12 @@ export default function Settings({ mode, household, onClose }) {
           </div>
         )}
 
-        <div className="press" onClick={onClose} style={{ marginTop: 20, textAlign: 'center', padding: 15, borderRadius: 14, background: '#F2F4F6', fontSize: 15, fontWeight: 700, color: '#4E5968' }}>닫기</div>
+        <div style={{ height: 1, background: '#F2F4F6', margin: '20px 0' }} />
+        <div className="press" onClick={onExport} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: 15, borderRadius: 14, background: '#EAF7EE', fontSize: 15, fontWeight: 700, color: '#1B9E54' }}>
+          <span>📊</span>{exporting ? '내보내는 중…' : '엑셀로 내보내기'}
+        </div>
+
+        <div className="press" onClick={onClose} style={{ marginTop: 12, textAlign: 'center', padding: 15, borderRadius: 14, background: '#F2F4F6', fontSize: 15, fontWeight: 700, color: '#4E5968' }}>닫기</div>
       </div>
     </>
   )

@@ -19,25 +19,8 @@ export function buildSeed() {
     ...fH.map((x, i) => ({ id: p + 'h' + i, owner: '혜원', kind: '고정', cat: x[2], title: x[0], amount: x[1], memo: '' })),
   ]
   const v = (p, owner, arr) => arr.map((x, i) => ({ id: p + i, owner, kind: '변동', cat: '', title: x[0], amount: x[1], memo: x[2] || '' }))
-  const sav = (vals) => SAV.map((s, i) => ({ id: 'sav' + i + '_', owner: '공동', title: s[0], amount: vals[i] || 0, memo: '' }))
+  const sav = (vals) => SAV.map((s, i) => ({ id: 'sav' + i + '_', owner: '공동', cat: s[0], title: s[0], amount: vals[i] || 0, memo: '' }))
 
-  const may = {
-    income: [
-      { id: 'mi1', owner: '이현', title: '이현 월 수입', amount: 3388720, memo: '5월 말일 입금' },
-      { id: 'mi2', owner: '혜원', title: '혜원 수입', amount: 0, memo: '확인 필요' },
-      { id: 'mi3', owner: '기타', title: '이외 수입', amount: 1500000, memo: '저번달 이월' },
-    ],
-    expense: [
-      ...fixedExp('m'),
-      ...v('mvi', '이현', [['한식당 회식', 48000, ''], ['배달의민족', 54000, ''], ['다이소', 23700, '']]),
-      ...v('mvh', '혜원', [['무신사', 89000, ''], ['투썸플레이스', 12400, ''], ['CU', 18600, ''], ['온누리약국', 14000, '약값']]),
-    ],
-    savings: sav([500000, 300000, 70000, 200000, 0]),
-    savingsCards: [
-      { key: '저축', prev: 1000000, curr: 1500000 }, { key: '투자', prev: 600000, curr: 900000 },
-      { key: '청약통장', prev: 430000, curr: 500000 }, { key: '비상예비금', prev: 800000, curr: 1000000 },
-    ],
-  }
   const jun = {
     income: [
       { id: 'ji1', owner: '이현', title: '이현 월 수입', amount: 3388720, memo: '6월 말 입금 예정' },
@@ -64,5 +47,5 @@ export function buildSeed() {
       { key: '청약통장', prev: 570000, curr: 570000 }, { key: '비상예비금', prev: 1200000, curr: 1200000 },
     ],
   }
-  return { '2026-05': may, '2026-06': jun, '2026-07': jul }
+  return { '2026-06': jun, '2026-07': jul }
 }
