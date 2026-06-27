@@ -1,133 +1,119 @@
-import { useState, useCallback } from 'react';
-import { getInitialState, saveState, prevMonth, nextMonth } from './store';
-import Home from './screens/Home';
-import Input from './screens/Input';
-import Report from './screens/Report';
-import Challenge from './screens/Challenge';
-import Settings from './screens/Settings';
+import { useState, useEffect, useCallback } from 'react';
+import { loadLedger, saveLedger, MONTHS, DEFAULT_MONTH, formatMonth, newId } from './store';
+import { QuickInputSheet, EditSheet } from './sheets';
+import HomeScreen from './screens/HomeScreen';
+import MonthScreen from './screens/MonthScreen';
+import SavingsScreen from './screens/SavingsScreen';
+import StatsScreen from './screens/StatsScreen';
 
 const TABS = [
-  { id: 'home',      icon: '🏠', label: '홈' },
-  { id: 'input',     icon: '✏️', label: '입력' },
-  { id: 'report',    icon: '📊', label: '리포트' },
-  { id: 'challenge', icon: '🏆', label: '챌린지' },
-  { id: 'settings',  icon: '⚙️', label: '설정' },
+  { id: 'home', label: '홈', icon: '🏠' },
+  { id: 'month', label: '월별', icon: '📅' },
+  { id: 'savings', label: '저축', icon: '🐷' },
+  { id: 'stats', label: '통계', icon: '📊' },
 ];
 
+const blankItem = (bucket) => {
+  if (bucket === 'income') return { id: newId('i'), owner: '이현', title: '', amount: 0, memo: '' };
+  if (bucket === 'savings') return { id: newId('s'), owner: '공동', title: '', amount: 0, memo: '' };
+  return { id: newId('e'), owner: '이현', kind: '고정', cat: '생활', title: '', amount: 0, memo: '' };
+};
+
 export default function App() {
+  const [ledger, setLedger] = useState(loadLedger);
+  const [month, setMonth] = useState(DEFAULT_MONTH);
   const [tab, setTab] = useState('home');
-  const [state, setState] = useState(getInitialState);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState(null); // { item, bucket, isNew }
 
-  const update = useCallback((updater) => {
-    setState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
-      saveState(next);
-      return next;
-    });
-  }, []);
+  useEffect(() => { saveLedger(ledger); }, [ledger]);
 
-  function handleAddExpense(expense) {
-    update(prev => ({ ...prev, expenses: [...prev.expenses, expense] }));
-    setTab('home');
-  }
+  const md = ledger[month];
 
-  function handleEditExpense(updated) {
-    update(prev => ({
+  const mutate = useCallback((bucket, fn) => {
+    setLedger(prev => ({
       ...prev,
-      expenses: prev.expenses.map(e => e.id === updated.id ? updated : e),
+      [month]: { ...prev[month], [bucket]: fn(prev[month][bucket]) },
     }));
-  }
+  }, [month]);
 
-  function handleDeleteExpense(id) {
-    update(prev => ({ ...prev, expenses: prev.expenses.filter(e => e.id !== id) }));
-  }
+  const addItem = (bucket, item) => mutate(bucket, list => [...list, item]);
+  const updateItem = (bucket, item) => mutate(bucket, list => list.map(x => x.id === item.id ? item : x));
+  const deleteItem = (bucket, id) => mutate(bucket, list => list.filter(x => x.id !== id));
 
-  function handleAddMessage(msg) {
-    update(prev => ({ ...prev, coupleMessages: [...prev.coupleMessages, msg] }));
-  }
+  const monthIdx = MONTHS.indexOf(month);
+  const goMonth = (dir) => {
+    const next = MONTHS[monthIdx + dir];
+    if (next) setMonth(next);
+  };
 
-  function handleBudgetUpdate(newSettings) {
-    update(prev => ({ ...prev, budgetSettings: newSettings }));
-  }
-
-  function handleMonthlyFixedUpdate(month, overrides) {
-    update(prev => ({
-      ...prev,
-      monthlyFixed: { ...prev.monthlyFixed, [month]: overrides },
-    }));
-  }
-
-  function goMonth(dir) {
-    update(prev => ({
-      ...prev,
-      currentMonth: dir === 'prev' ? prevMonth(prev.currentMonth) : nextMonth(prev.currentMonth),
-    }));
+  function handleSheetSave(next) {
+    if (editTarget.isNew) addItem(editTarget.bucket, next);
+    else updateItem(editTarget.bucket, next);
   }
 
   return (
-    <div id="app-shell">
-      <div className="screen">
-        {tab === 'home' && (
-          <Home
-            expenses={state.expenses}
-            budgetSettings={state.budgetSettings}
-            currentMonth={state.currentMonth}
-            appStartMonth={state.appStartMonth || state.currentMonth}
-            monthlyFixed={state.monthlyFixed || {}}
-            onMonthChange={goMonth}
-            onEditExpense={handleEditExpense}
-            onDeleteExpense={handleDeleteExpense}
-            onBudgetUpdate={handleBudgetUpdate}
-            onMonthlyFixedUpdate={handleMonthlyFixedUpdate}
-          />
-        )}
-        {tab === 'input' && (
-          <Input
-            onAdd={handleAddExpense}
-            currentMonth={state.currentMonth}
-            budgetSettings={state.budgetSettings}
-          />
-        )}
-        {tab === 'report' && (
-          <Report
-            expenses={state.expenses}
-            budgetSettings={state.budgetSettings}
-            currentMonth={state.currentMonth}
-            monthlyFixed={state.monthlyFixed || {}}
-            coupleMessages={state.coupleMessages}
-            onAddMessage={handleAddMessage}
-          />
-        )}
-        {tab === 'challenge' && (
-          <Challenge
-            streak={state.streak}
-            savingsLog={state.savingsLog}
-            jars={state.jars}
-            budgetSettings={state.budgetSettings}
-            appStartMonth={state.appStartMonth || state.currentMonth}
-            currentMonth={state.currentMonth}
-          />
-        )}
-        {tab === 'settings' && (
-          <Settings
-            budgetSettings={state.budgetSettings}
-            onUpdate={handleBudgetUpdate}
-          />
-        )}
-      </div>
+    <div style={{ paddingBottom: 78 }}>
+      {/* 월 헤더 */}
+      <header style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', padding: '16px 16px 10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+          <button onClick={() => goMonth(-1)} disabled={monthIdx === 0}
+            style={{ background: 'none', border: 'none', fontSize: 22, color: monthIdx === 0 ? '#D1D6DB' : 'var(--ink)', padding: 4 }}>‹</button>
+          <h1 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{formatMonth(month)}</h1>
+          <button onClick={() => goMonth(1)} disabled={monthIdx === MONTHS.length - 1}
+            style={{ background: 'none', border: 'none', fontSize: 22, color: monthIdx === MONTHS.length - 1 ? '#D1D6DB' : 'var(--ink)', padding: 4 }}>›</button>
+        </div>
+      </header>
 
-      <nav className="bottom-nav">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            className={`nav-btn ${tab === t.id ? 'active' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            <span className="nav-icon">{t.icon}</span>
-            <span className="nav-label">{t.label}</span>
-          </button>
-        ))}
+      <main className="pop" key={tab + month}>
+        {tab === 'home' && <HomeScreen month={md} />}
+        {tab === 'month' && (
+          <MonthScreen month={md}
+            onRowClick={(item, bucket) => setEditTarget({ item, bucket, isNew: false })}
+            onDelete={(id, bucket) => deleteItem(bucket, id)}
+            onAdd={(bucket) => setEditTarget({ item: blankItem(bucket), bucket, isNew: true })} />
+        )}
+        {tab === 'savings' && <SavingsScreen ledger={ledger} month={md} />}
+        {tab === 'stats' && <StatsScreen ledger={ledger} month={md} />}
+      </main>
+
+      {/* FAB */}
+      <button onClick={() => setQuickOpen(true)} style={{
+        position: 'fixed', bottom: 88, right: 'calc(50% - 220px + 20px)', width: 56, height: 56,
+        borderRadius: '50%', border: 'none', background: '#3182F6', color: '#fff', fontSize: 28,
+        boxShadow: '0 6px 20px rgba(49,130,246,.4)', zIndex: 30, lineHeight: 1,
+      }}>+</button>
+
+      {/* 하단 탭바 */}
+      <nav style={{
+        position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 440,
+        display: 'flex', background: '#fff', borderTop: '1px solid #F2F4F6', zIndex: 25,
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}>
+        {TABS.map(t => {
+          const active = tab === t.id;
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              flex: 1, padding: '11px 0 13px', background: 'none', border: 'none',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+            }}>
+              <span style={{ fontSize: 20, filter: active ? 'none' : 'grayscale(1)', opacity: active ? 1 : .5 }}>{t.icon}</span>
+              <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? '#3182F6' : 'var(--faint)' }}>{t.label}</span>
+            </button>
+          );
+        })}
       </nav>
+
+      {quickOpen && (
+        <QuickInputSheet onClose={() => setQuickOpen(false)}
+          onSubmit={(bucket, item) => addItem(bucket, item)} />
+      )}
+      {editTarget && (
+        <EditSheet item={editTarget.item} bucket={editTarget.bucket}
+          onClose={() => setEditTarget(null)}
+          onSave={handleSheetSave}
+          onDelete={() => { if (!editTarget.isNew) deleteItem(editTarget.bucket, editTarget.item.id); }} />
+      )}
     </div>
   );
 }

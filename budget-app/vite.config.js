@@ -11,12 +11,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: '우리 가계부',
-        short_name: '가계부',
+        name: 'J&H 가계부',
+        short_name: 'J&H 가계부',
         start_url: '/',
         display: 'standalone',
-        background_color: '#FAF8F3',
-        theme_color: '#1A1410',
+        background_color: '#F2F4F6',
+        theme_color: '#3182F6',
         icons: [
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
