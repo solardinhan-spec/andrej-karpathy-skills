@@ -1,11 +1,5 @@
 @import "tailwindcss";
-
-@font-face {
-  font-family: 'Pretendard';
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/woff2/PretendardVariable.woff2') format('woff2-variations');
-}
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css");
 
 :root {
   --bg: #F2F4F6;
@@ -31,7 +25,8 @@ html, body {
 }
 
 body {
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', sans-serif;
+  letter-spacing: -0.01em;
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
