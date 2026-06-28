@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { won, OWN, FCAT, BIGS, OWNERS, savMeta } from '../lib/constants.js'
+import { won, OWN, FCAT, FCAT_ICON, BIGS, OWNERS, savMeta } from '../lib/constants.js'
 import { sum } from '../lib/compute.js'
 
 const ownerOf = (o) => OWN[o] || OWN.기타
@@ -56,7 +56,7 @@ function buildRow(item, big, noPill) {
   else {
     if (item.kind === '고정') {
       const c = FCAT[item.cat] || '#868E96'
-      tile = { e: '💳', bg: c + '18' }
+      tile = { e: FCAT_ICON[item.cat] || '💳', bg: c + '18' }
       base.accent = 'inset 3px 0 0 #DCE7FB'
       if (!noPill) { base.tag = item.cat; base.tagStyle = { fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: c + '18', color: c } }
     } else {

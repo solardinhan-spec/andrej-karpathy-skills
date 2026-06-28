@@ -13,6 +13,7 @@ export const FCAT = {
 }
 
 export const CATS = ['생활', '공과금', '보험', '통신', '구독', '차량', '교통', '기타']
+export const FCAT_ICON = { 생활: '🛒', 공과금: '🏛️', 보험: '🛡️', 통신: '📱', 구독: '📺', 차량: '🚗', 교통: '🚇', 기타: '📌' }
 export const OWNERS = ['이현', '혜원', '기타']
 export const SAV = [
   ['저축', '🐷', '#E3F7EF'],
