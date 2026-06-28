@@ -28,7 +28,6 @@ export default function App() {
   const [big, setBig] = useState('income')
   const [expOwner, setExpOwner] = useState('전체')
   const [collapsed, setCollapsed] = useState({})
-  const [swipeOpenId, setSwipeOpenId] = useState(null)
   const [quickOpen, setQuickOpen] = useState(false)
   const [edit, setEdit] = useState(null)
   const [cardEdit, setCardEdit] = useState(null)
@@ -48,13 +47,11 @@ export default function App() {
 
   const toggleCollapse = (b, owner) => {
     setCollapsed((c) => ({ ...c, [b + '|' + owner]: !c[b + '|' + owner] }))
-    setSwipeOpenId(null)
   }
 
   const openEdit = (list, id) => {
     const item = d[list].find((x) => x.id === id)
     if (!item) return
-    setSwipeOpenId(null)
     setEdit({ list, id, name: item.title, amount: String(item.amount), memo: item.memo || '', owner: item.owner, kind: item.kind || '변동', cat: item.cat || (list === 'savings' ? (item.title || '저축') : '생활') })
   }
 
@@ -67,7 +64,6 @@ export default function App() {
   const onDelete = (list, id) => {
     const item = d[list].find((x) => x.id === id)
     deleteEntry(mk, list, id)
-    setSwipeOpenId(null)
     if (item) {
       const { id: _omit, ...fields } = item
       showToast({ message: '삭제됐어요', actionLabel: '되돌리기', onAction: () => { addEntry(mk, list, fields); setToast(null) } })
@@ -113,8 +109,8 @@ export default function App() {
     showToast({ message: `${toAdd.length}건을 추가했어요` })
   }
 
-  const goPrev = () => { setMonthKey((k) => clampMonth(addMonth(k, -1))); setSwipeOpenId(null) }
-  const goNext = () => { setMonthKey((k) => clampMonth(addMonth(k, 1))); setSwipeOpenId(null) }
+  const goPrev = () => setMonthKey((k) => clampMonth(addMonth(k, -1)))
+  const goNext = () => setMonthKey((k) => clampMonth(addMonth(k, 1)))
   const canPrev = mk > START_MONTH
   const canNext = mk < END_MONTH
   const openPicker = () => setMonthPickerOpen(true)
@@ -129,7 +125,7 @@ export default function App() {
         {tab === 'home' && <Home m={m} nav={navLg} names={names} />}
         {tab === 'month' && (
           <MonthDetail d={d} big={big} setBig={setBig} expOwner={expOwner} setExpOwner={setExpOwner}
-            collapsed={collapsed} toggleCollapse={toggleCollapse} swipeOpenId={swipeOpenId} setSwipeOpenId={setSwipeOpenId}
+            collapsed={collapsed} toggleCollapse={toggleCollapse}
             onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} nav={navSm} names={names} onLoadFixed={onLoadFixed} />
         )}
         {tab === 'savings' && <Savings d={d} data={data} monthKey={monthKey} nav={navSm} onEditCard={setCardEdit} />}
@@ -144,7 +140,7 @@ export default function App() {
         </div>
       )}
 
-      <TabBar tab={tab} setTab={(t) => { setTab(t); setSwipeOpenId(null) }} />
+      <TabBar tab={tab} setTab={setTab} />
 
       {/* FAB (모달 열릴 땐 숨김) */}
       {!anyModalOpen && (
@@ -159,7 +155,7 @@ export default function App() {
       {quickOpen && <QuickModal onClose={() => setQuickOpen(false)} onSave={saveQuick} names={names} />}
       {edit && <EditModal target={edit} onClose={() => setEdit(null)} onSave={saveEdit} names={names} />}
       {cardEdit && <SavingsCardModal card={cardEdit} onClose={() => setCardEdit(null)} onSave={saveCard} />}
-      {monthPickerOpen && <MonthPicker current={monthKey} onSelect={(k) => { setMonthKey(clampMonth(k)); setSwipeOpenId(null); setMonthPickerOpen(false) }} onClose={() => setMonthPickerOpen(false)} />}
+      {monthPickerOpen && <MonthPicker current={monthKey} onSelect={(k) => { setMonthKey(clampMonth(k)); setMonthPickerOpen(false) }} onClose={() => setMonthPickerOpen(false)} />}
       {showSettings && <Settings mode={mode} household={household} names={names} data={data} onUpdateNames={updateNames} onReset={resetData} onClose={() => setShowSettings(false)} />}
     </div>
   )
