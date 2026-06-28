@@ -26,8 +26,10 @@ export default function Onboarding({ onCreate, onJoin }) {
       {view === 'home' ? (
         <>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="가계부 이름" style={input} />
-          <div className="press" style={btn(true)} onClick={() => !busy && run(() => onCreate(name))}>{busy ? '만드는 중…' : '새 가계부 만들기'}</div>
-          <div className="press" style={btn(false)} onClick={() => setView('join')}>초대 코드로 참여하기</div>
+          <div className="press" style={btn(true)} onClick={() => !busy && run(() => onCreate(name, true))}>{busy ? '만드는 중…' : '예시 데이터로 시작'}</div>
+          <div className="press" style={btn(false)} onClick={() => !busy && run(() => onCreate(name, false))}>빈 가계부로 시작</div>
+          <div style={{ height: 1, background: '#EDF0F2', margin: '4px 0' }} />
+          <div className="press" style={{ ...btn(false), background: 'transparent', color: '#3182F6' }} onClick={() => setView('join')}>초대 코드로 참여하기</div>
         </>
       ) : (
         <>

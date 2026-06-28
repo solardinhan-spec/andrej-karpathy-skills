@@ -7,7 +7,8 @@ const sheet = { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 51, 
 const PREF_KEY = 'budget:quickprefs'
 const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {} } catch (_) { return {} } }
 
-export default function QuickModal({ onClose, onSave }) {
+export default function QuickModal({ onClose, onSave, names }) {
+  const dispName = (o) => (names && names[o]) || o
   const [q, setQ] = useState(() => {
     const p = loadPrefs()
     return { type: p.type || 'expense', amount: '', owner: p.owner || '이현', title: '', kind: p.kind || '변동', cat: p.cat || (p.type === 'savings' ? '저축' : '생활'), memo: '' }
@@ -85,7 +86,7 @@ export default function QuickModal({ onClose, onSave }) {
         {ownerList.length > 0 && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
             {ownerList.map((o) => (
-              <div key={o} className="press" onClick={() => patch({ owner: o })} style={ownerStyle(o, q.owner === o)}>{o}</div>
+              <div key={o} className="press" onClick={() => patch({ owner: o })} style={ownerStyle(o, q.owner === o)}>{dispName(o)}</div>
             ))}
           </div>
         )}

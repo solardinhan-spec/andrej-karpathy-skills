@@ -1,24 +1,27 @@
-import { won, SAV_CATS, savMeta, MONTH_KEYS, MONTH_SHORT } from '../lib/constants.js'
+import { won, SAV_CATS, savMeta, START_MONTH, addMonth, monthShort } from '../lib/constants.js'
 import { sum, compute } from '../lib/compute.js'
 import { LineChart } from './Charts.jsx'
 
-export default function Savings({ d, data, monthIdx, nav, onEditCard }) {
+export default function Savings({ d, data, monthKey, nav, onEditCard }) {
   const currOf = (cards, key) => (cards.find((c) => c.key === key)?.curr) || 0
 
-  // '저번 달'은 MONTH_KEYS 기준 직전 월의 '이번 달'에서 자동 파생 (첫 달=0).
-  const prevMonthKey = monthIdx > 0 ? MONTH_KEYS[monthIdx - 1] : null
-  const prevCards = prevMonthKey && data[prevMonthKey] ? data[prevMonthKey].savingsCards : []
+  // '저번 달'은 직전 달(≥START)의 '이번 달'에서 자동 파생 (첫 달=0).
+  const prevKey = addMonth(monthKey, -1)
+  const usePrev = prevKey >= START_MONTH
+  const prevCards = usePrev && data[prevKey] ? data[prevKey].savingsCards : []
   const cards = SAV_CATS.map((key) => ({
     key,
     curr: currOf(d.savingsCards, key),
-    prev: prevMonthKey ? currOf(prevCards, key) : 0,
+    prev: usePrev ? currOf(prevCards, key) : 0,
   }))
   const totalAsset = sum(cards, (x) => x.curr)
   const assetGrowth = sum(cards, (x) => x.curr - x.prev)
 
-  // 이월 추이: 월별 잔여금(remaining)의 누적합 (실데이터).
+  // 이월 추이: 데이터 있는 월(≥START)의 잔여금 누적합 (실데이터).
+  const hasData = (mm) => mm && (mm.income.length || mm.expense.length || mm.savings.length)
+  const lineMonths = Object.keys(data).filter((k) => k >= START_MONTH && hasData(data[k])).sort()
   let acc = 0
-  const lineData = MONTH_KEYS.map((k) => { acc += compute(data[k]).remaining; return { m: MONTH_SHORT[k], v: acc } })
+  const lineData = (lineMonths.length ? lineMonths : [monthKey]).map((k) => { acc += compute(data[k] || { income: [], expense: [], savings: [] }).remaining; return { m: monthShort(k), v: acc } })
 
   return (
     <div>

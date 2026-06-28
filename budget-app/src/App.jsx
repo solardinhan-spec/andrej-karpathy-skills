@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import { useBudget } from './lib/useBudget.js'
+import { useBudget, emptyMonth } from './lib/useBudget.js'
 import { compute } from './lib/compute.js'
-import { MONTH_KEYS, MONTH_LABELS } from './lib/constants.js'
+import { START_MONTH, END_MONTH, addMonth, monthLabel as fmtMonth, currentMonth, clampMonth } from './lib/constants.js'
 import Home from './components/Home.jsx'
 import MonthDetail from './components/MonthDetail.jsx'
 import Savings from './components/Savings.jsx'
@@ -20,10 +20,10 @@ function Center({ children }) {
 }
 
 export default function App() {
-  const { mode, status, error, household, data, createHousehold, joinHousehold, addEntry, updateEntry, deleteEntry, updateSavingsCard } = useBudget()
+  const { mode, status, error, household, names, data, createHousehold, joinHousehold, addEntry, addEntries, updateEntry, deleteEntry, updateSavingsCard, updateNames, resetData } = useBudget()
 
   const [tab, setTab] = useState('home')
-  const [monthIdx, setMonthIdx] = useState(0)
+  const [monthKey, setMonthKey] = useState(() => clampMonth(currentMonth()))
   const [big, setBig] = useState('income')
   const [expOwner, setExpOwner] = useState('전체')
   const [collapsed, setCollapsed] = useState({})
@@ -39,10 +39,10 @@ export default function App() {
   if (status === 'error') return <Center>문제가 발생했어요.<br />{error}</Center>
   if (status === 'onboarding') return <div className="app"><div className="scroll"><Onboarding onCreate={createHousehold} onJoin={joinHousehold} /></div></div>
 
-  const mk = MONTH_KEYS[monthIdx]
-  const d = data[mk]
+  const mk = monthKey
+  const d = data[mk] || emptyMonth()
   const m = compute(d)
-  const monthLabel = MONTH_LABELS[mk]
+  const monthLabel = fmtMonth(mk)
 
   const toggleCollapse = (b, owner) => {
     setCollapsed((c) => ({ ...c, [b + '|' + owner]: !c[b + '|' + owner] }))
@@ -50,7 +50,7 @@ export default function App() {
   }
 
   const openEdit = (list, id) => {
-    const item = data[mk][list].find((x) => x.id === id)
+    const item = d[list].find((x) => x.id === id)
     if (!item) return
     setSwipeOpenId(null)
     setEdit({ list, id, name: item.title, amount: String(item.amount), memo: item.memo || '', owner: item.owner, kind: item.kind || '변동', cat: item.cat || (list === 'savings' ? (item.title || '저축') : '생활') })
@@ -63,7 +63,7 @@ export default function App() {
   }
 
   const onDelete = (list, id) => {
-    const item = data[mk][list].find((x) => x.id === id)
+    const item = d[list].find((x) => x.id === id)
     deleteEntry(mk, list, id)
     setSwipeOpenId(null)
     if (item) {
@@ -87,7 +87,7 @@ export default function App() {
     if (q.type === 'expense') {
       await addEntry(mk, 'expense', { owner: q.owner, kind: q.kind, cat: q.kind === '고정' ? q.cat : '', title: q.title || (q.kind === '고정' ? q.cat : '지출'), amount: q.amount, memo: q.memo || '' })
     } else if (q.type === 'income') {
-      await addEntry(mk, 'income', { owner: q.owner, title: q.title || (q.owner + ' 수입'), amount: q.amount, memo: q.memo || '' })
+      await addEntry(mk, 'income', { owner: q.owner, title: q.title || ((names[q.owner] || q.owner) + ' 수입'), amount: q.amount, memo: q.memo || '' })
     } else {
       await addEntry(mk, 'savings', { owner: '공동', cat: q.cat || '저축', title: q.title || q.cat || '저축', amount: q.amount, memo: q.memo || '' })
     }
@@ -96,10 +96,25 @@ export default function App() {
 
   const saveEdit = async (list, id, patch) => { await updateEntry(mk, list, id, patch); setEdit(null) }
 
-  const goPrev = () => { setMonthIdx(Math.max(0, monthIdx - 1)); setSwipeOpenId(null) }
-  const goNext = () => { setMonthIdx(Math.min(MONTH_KEYS.length - 1, monthIdx + 1)); setSwipeOpenId(null) }
-  const canPrev = monthIdx > 0
-  const canNext = monthIdx < MONTH_KEYS.length - 1
+  // 전월 고정지출 불러오기 (기존 항목 보존, 중복 건너뜀)
+  const onLoadFixed = async () => {
+    const prevKey = addMonth(mk, -1)
+    if (prevKey < START_MONTH) { showToast({ message: '이전 달이 없어요' }); return }
+    const prev = data[prevKey] || emptyMonth()
+    const prevFixed = prev.expense.filter((x) => x.kind === '고정')
+    if (!prevFixed.length) { showToast({ message: '전월에 고정지출이 없어요' }); return }
+    const here = new Set(d.expense.filter((x) => x.kind === '고정').map((x) => x.owner + '|' + x.title))
+    const toAdd = prevFixed.filter((x) => !here.has(x.owner + '|' + x.title))
+    if (!toAdd.length) { showToast({ message: '이미 모두 있어요' }); return }
+    if (!window.confirm(`전월 고정지출 ${toAdd.length}건을 추가할까요? 기존 항목은 그대로 유지돼요.`)) return
+    await addEntries(mk, 'expense', toAdd.map((x) => ({ owner: x.owner, kind: '고정', cat: x.cat || '', title: x.title, amount: x.amount, memo: x.memo || '' })))
+    showToast({ message: `${toAdd.length}건을 추가했어요` })
+  }
+
+  const goPrev = () => { setMonthKey((k) => clampMonth(addMonth(k, -1))); setSwipeOpenId(null) }
+  const goNext = () => { setMonthKey((k) => clampMonth(addMonth(k, 1))); setSwipeOpenId(null) }
+  const canPrev = mk > START_MONTH
+  const canNext = mk < END_MONTH
   const navSm = <MonthNav label={monthLabel} onPrev={goPrev} onNext={goNext} canPrev={canPrev} canNext={canNext} />
   const navLg = <MonthNav size="lg" label={monthLabel} onPrev={goPrev} onNext={goNext} canPrev={canPrev} canNext={canNext} />
 
@@ -108,14 +123,14 @@ export default function App() {
   return (
     <div className="app">
       <div className="scroll">
-        {tab === 'home' && <Home m={m} nav={navLg} />}
+        {tab === 'home' && <Home m={m} nav={navLg} names={names} />}
         {tab === 'month' && (
           <MonthDetail d={d} big={big} setBig={setBig} expOwner={expOwner} setExpOwner={setExpOwner}
             collapsed={collapsed} toggleCollapse={toggleCollapse} swipeOpenId={swipeOpenId} setSwipeOpenId={setSwipeOpenId}
-            onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} nav={navSm} />
+            onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} nav={navSm} names={names} onLoadFixed={onLoadFixed} />
         )}
-        {tab === 'savings' && <Savings d={d} data={data} monthIdx={monthIdx} nav={navSm} onEditCard={setCardEdit} />}
-        {tab === 'stats' && <Stats data={data} m={m} monthIdx={monthIdx} nav={navSm} />}
+        {tab === 'savings' && <Savings d={d} data={data} monthKey={monthKey} nav={navSm} onEditCard={setCardEdit} />}
+        {tab === 'stats' && <Stats data={data} m={m} monthKey={monthKey} nav={navSm} names={names} />}
       </div>
 
       {/* settings button (모달 열릴 땐 숨김) */}
@@ -138,10 +153,10 @@ export default function App() {
 
       {toast && <Toast message={toast.message} actionLabel={toast.actionLabel} onAction={toast.onAction} />}
 
-      {quickOpen && <QuickModal onClose={() => setQuickOpen(false)} onSave={saveQuick} />}
-      {edit && <EditModal target={edit} onClose={() => setEdit(null)} onSave={saveEdit} />}
+      {quickOpen && <QuickModal onClose={() => setQuickOpen(false)} onSave={saveQuick} names={names} />}
+      {edit && <EditModal target={edit} onClose={() => setEdit(null)} onSave={saveEdit} names={names} />}
       {cardEdit && <SavingsCardModal card={cardEdit} onClose={() => setCardEdit(null)} onSave={saveCard} />}
-      {showSettings && <Settings mode={mode} household={household} data={data} onClose={() => setShowSettings(false)} />}
+      {showSettings && <Settings mode={mode} household={household} names={names} data={data} onUpdateNames={updateNames} onReset={resetData} onClose={() => setShowSettings(false)} />}
     </div>
   )
 }

@@ -6,7 +6,8 @@ const sheet = { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 53, 
 const labelStyle = { fontSize: 13, fontWeight: 600, color: '#8B95A1', marginBottom: 7 }
 const inputStyle = { width: '100%', border: 'none', background: '#F2F4F6', borderRadius: 13, padding: '14px 16px', fontSize: 16, fontWeight: 600, color: '#191F28', outline: 'none' }
 
-export default function EditModal({ target, onClose, onSave }) {
+export default function EditModal({ target, onClose, onSave, names }) {
+  const dispName = (o) => (names && names[o]) || o
   const [e, setE] = useState(target)
   const set = (p) => setE((s) => ({ ...s, ...p }))
 
@@ -46,7 +47,7 @@ export default function EditModal({ target, onClose, onSave }) {
             <div style={labelStyle}>담당</div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               {ownerList.map((o) => (
-                <div key={o} className="press" onClick={() => set({ owner: o })} style={ownerStyle(o, e.owner === o)}>{o}</div>
+                <div key={o} className="press" onClick={() => set({ owner: o })} style={ownerStyle(o, e.owner === o)}>{dispName(o)}</div>
               ))}
             </div>
           </>

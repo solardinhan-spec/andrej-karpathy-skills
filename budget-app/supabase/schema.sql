@@ -133,3 +133,23 @@ begin
     alter publication supabase_realtime add table public.savings_cards;
   end if;
 end $$;
+
+-- 6) 구성원 이름 (이현/혜원 슬롯의 표시 이름) ------------------------
+alter table public.households add column if not exists m1_name text default '이현';
+alter table public.households add column if not exists m2_name text default '혜원';
+
+create or replace function public.set_member_names(p_m1 text, p_m2 text)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  hid uuid;
+begin
+  select household_id into hid from public.household_members where user_id = auth.uid() limit 1;
+  if hid is null or not public.is_member(hid) then raise exception 'not a member'; end if;
+  update public.households
+    set m1_name = coalesce(nullif(p_m1, ''), '이현'),
+        m2_name = coalesce(nullif(p_m2, ''), '혜원')
+  where id = hid;
+end;
+$$;
+
+grant execute on function public.set_member_names(text, text) to authenticated, anon;

@@ -10,6 +10,13 @@ export function compute(month) {
   const savings = sum(month.savings)
   const remaining = income - expense - savings
   const byOwner = { 이현: 0, 혜원: 0, 기타: 0 }
-  month.expense.forEach((x) => { byOwner[x.owner] = (byOwner[x.owner] || 0) + (+x.amount || 0) })
-  return { income, fixed, variable, expense, savings, remaining, byOwner }
+  const byOwnerFixed = { 이현: 0, 혜원: 0, 기타: 0 }
+  const byOwnerVariable = { 이현: 0, 혜원: 0, 기타: 0 }
+  month.expense.forEach((x) => {
+    const amt = +x.amount || 0
+    byOwner[x.owner] = (byOwner[x.owner] || 0) + amt
+    const b = x.kind === '고정' ? byOwnerFixed : byOwnerVariable
+    b[x.owner] = (b[x.owner] || 0) + amt
+  })
+  return { income, fixed, variable, expense, savings, remaining, byOwner, byOwnerFixed, byOwnerVariable }
 }
