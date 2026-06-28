@@ -62,6 +62,14 @@ export function useBudget() {
     setData(groupRows(ents.data || [], cards.data || []))
   }, [])
 
+  // 이름 컬럼은 마이그레이션 전이면 없을 수 있음 → 실패해도 앱은 정상 동작(기본 이름 유지).
+  const loadNames = useCallback(async (hid) => {
+    try {
+      const r = await supabase.from('households').select('m1_name,m2_name').eq('id', hid).maybeSingle()
+      if (!r.error && r.data) setMemberNames({ m1: r.data.m1_name || '이현', m2: r.data.m2_name || '혜원' })
+    } catch (_) {}
+  }, [])
+
   const seedCloud = useCallback(async (hid) => {
     const seed = buildSeed()
     const entryRows = []
@@ -116,7 +124,7 @@ export function useBudget() {
         }
         const { data: mem, error: mErr } = await supabase
           .from('household_members')
-          .select('household_id, households(id,name,invite_code,m1_name,m2_name)')
+          .select('household_id, households(id,name,invite_code)')
           .limit(1)
           .maybeSingle()
         if (mErr) throw mErr
@@ -124,7 +132,7 @@ export function useBudget() {
           const h = mem.households
           hidRef.current = h.id
           setHousehold(h)
-          setMemberNames({ m1: h.m1_name || '이현', m2: h.m2_name || '혜원' })
+          await loadNames(h.id)
           await reloadCloud(h.id)
           channel = subscribeCloud(h.id)
           setStatus('ready')
@@ -139,7 +147,7 @@ export function useBudget() {
 
     if (mode === 'cloud') initCloud(); else initLocal()
     return () => { if (channel) supabase.removeChannel(channel) }
-  }, [mode, reloadCloud, subscribeCloud])
+  }, [mode, reloadCloud, subscribeCloud, loadNames])
 
   // ---------- HOUSEHOLD actions (cloud only) ----------
   const createHousehold = useCallback(async (name, withSeed = true) => {
