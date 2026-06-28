@@ -4,7 +4,7 @@ import { Donut, Legend, Ring, CompareBars } from './Charts.jsx'
 
 const card = { borderRadius: 22, padding: '20px 22px', background: '#fff', boxShadow: '0 4px 16px rgba(30,50,90,.05)' }
 
-export default function Stats({ data, m, monthIdx, monthLabel }) {
+export default function Stats({ data, m, monthIdx, nav }) {
   const rate = m.income ? (m.savings / m.income) * 100 : 0
   const segOwner = OWNERS.map((o) => ({ label: o, value: m.byOwner[o] || 0, color: OWN[o].c }))
   const values = MONTH_KEYS.map((k) => compute(data[k]).expense)
@@ -14,7 +14,7 @@ export default function Stats({ data, m, monthIdx, monthLabel }) {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 58px 10px 20px' }}>
         <span style={{ fontSize: 22, fontWeight: 800, color: '#191F28' }}>통계</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#8B95A1' }}>{monthLabel}</span>
+        {nav}
       </div>
 
       <div style={{ margin: '4px 16px 0', ...card, display: 'flex', alignItems: 'center', gap: 18 }}>

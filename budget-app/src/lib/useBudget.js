@@ -70,7 +70,7 @@ export function useBudget() {
           entryRows.push({ household_id: hid, month, type: t, owner: it.owner || null, kind: it.kind || null, cat: it.cat || null, title: it.title, amount: it.amount, memo: it.memo || '' })
         }
       }
-      for (const c of m.savingsCards) cardRows.push({ household_id: hid, month, key: c.key, prev: c.prev, curr: c.curr })
+      for (const c of m.savingsCards) cardRows.push({ household_id: hid, month, key: c.key, prev: 0, curr: c.curr })
     }
     await supabase.from('entries').insert(entryRows)
     await supabase.from('savings_cards').insert(cardRows)

@@ -30,11 +30,6 @@ export const savMeta = (cat) => {
 }
 export const BIGS = [['income', '수입'], ['expense', '지출'], ['savings', '저축']]
 
-export const LINE = [
-  { m: '2월', v: 760000 }, { m: '3월', v: 980000 }, { m: '4월', v: 1200000 },
-  { m: '5월', v: 1500000 }, { m: '6월', v: 1768855 }, { m: '7월', v: 1768855 },
-]
-
 // Month keys the app manages. (5월 제거 — 6월부터 시작)
 export const MONTH_KEYS = ['2026-06', '2026-07']
 export const MONTH_LABELS = {

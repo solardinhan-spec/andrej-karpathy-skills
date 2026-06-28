@@ -4,8 +4,14 @@ import { won, OWN, FCAT, CATS, SAV_CATS, savMeta } from '../lib/constants.js'
 const overlay = { position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(20,30,50,.4)', animation: 'fadeIn .2s' }
 const sheet = { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 51, background: '#fff', borderRadius: '26px 26px 0 0', padding: '10px 20px calc(28px + env(safe-area-inset-bottom))', animation: 'sheetUp .32s cubic-bezier(.2,.85,.25,1)' }
 
+const PREF_KEY = 'budget:quickprefs'
+const loadPrefs = () => { try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {} } catch (_) { return {} } }
+
 export default function QuickModal({ onClose, onSave }) {
-  const [q, setQ] = useState({ type: 'expense', amount: '', owner: '이현', title: '', kind: '변동', cat: '생활', memo: '' })
+  const [q, setQ] = useState(() => {
+    const p = loadPrefs()
+    return { type: p.type || 'expense', amount: '', owner: p.owner || '이현', title: '', kind: p.kind || '변동', cat: p.cat || (p.type === 'savings' ? '저축' : '생활'), memo: '' }
+  })
   const patch = (p) => setQ((s) => ({ ...s, ...p }))
   const key = (k) => setQ((s) => {
     let a = s.amount
@@ -25,6 +31,7 @@ export default function QuickModal({ onClose, onSave }) {
   const save = () => {
     const amt = parseInt(q.amount || '0') || 0
     if (!amt) { onClose(); return }
+    try { localStorage.setItem(PREF_KEY, JSON.stringify({ type: q.type, owner: q.owner, kind: q.kind, cat: q.cat })) } catch (_) {}
     onSave({ ...q, amount: amt })
   }
 

@@ -3,7 +3,7 @@ import { Donut, Legend, OwnerBars } from './Charts.jsx'
 
 const card = { borderRadius: 22, padding: '24px 22px', background: '#fff', boxShadow: '0 4px 16px rgba(30,50,90,.05)' }
 
-export default function Home({ m, monthLabel, onPrev, onNext, canPrev, canNext }) {
+export default function Home({ m, nav }) {
   const segHome = [
     { label: '고정지출', value: m.fixed, color: '#3182F6' },
     { label: '변동지출', value: m.variable, color: '#FF8A3D' },
@@ -14,14 +14,8 @@ export default function Home({ m, monthLabel, onPrev, onNext, canPrev, canNext }
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '14px 20px 10px' }}>
-        <div className="press" onClick={onPrev} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: canPrev ? 1 : .3 }}>
-          <svg width="9" height="16" viewBox="0 0 9 16"><path d="M8 1L1 8l7 7" stroke="#8B95A1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </div>
-        <span style={{ fontSize: 17, fontWeight: 700, color: '#191F28', minWidth: 120, textAlign: 'center' }}>{monthLabel}</span>
-        <div className="press" onClick={onNext} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: canNext ? 1 : .3 }}>
-          <svg width="9" height="16" viewBox="0 0 9 16"><path d="M1 1l7 7-7 7" stroke="#8B95A1" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 20px 10px' }}>
+        {nav}
       </div>
 
       <div style={{ margin: '6px 16px 0', ...card }}>
