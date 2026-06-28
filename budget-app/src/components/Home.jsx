@@ -3,14 +3,15 @@ import { Donut, Legend, OwnerBars } from './Charts.jsx'
 
 const card = { borderRadius: 22, padding: '24px 22px', background: '#fff', boxShadow: '0 4px 16px rgba(30,50,90,.05)' }
 
-export default function Home({ m, nav }) {
+export default function Home({ m, nav, names }) {
+  const dispName = (o) => (names && names[o]) || o
   const segHome = [
     { label: '고정지출', value: m.fixed, color: '#3182F6' },
     { label: '변동지출', value: m.variable, color: '#FF8A3D' },
     { label: '저축', value: m.savings, color: '#845EF7' },
     { label: '남은 금액', value: Math.max(0, m.remaining), color: '#DDE3EA' },
   ]
-  const ownerRows = OWNERS.map((o) => { const w = OWN[o]; return { name: o, value: m.byOwner[o] || 0, c: w.c, bg: w.bg, initial: w.i } })
+  const ownerRows = OWNERS.map((o) => { const w = OWN[o]; return { name: dispName(o), value: m.byOwner[o] || 0, c: w.c, bg: w.bg, initial: dispName(o)[0] } })
 
   return (
     <div>

@@ -70,7 +70,8 @@ function buildRow(item, big, noPill) {
   return base
 }
 
-export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, collapsed, toggleCollapse, swipeOpenId, setSwipeOpenId, onEdit, onDelete, onAdd, nav }) {
+export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, collapsed, toggleCollapse, swipeOpenId, setSwipeOpenId, onEdit, onDelete, onAdd, nav, names, onLoadFixed }) {
+  const dispName = (o) => (names && names[o]) || o
   // ---- build owner groups ----
   const mkSections = (sections) => sections.map((sec) => ({
     hasLabel: !!sec.hasLabel, label: sec.label || '', subtotalText: sec.subtotalText || '', color: sec.color || '#8B95A1',
@@ -81,18 +82,20 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
     const w = ownerOf(o)
     const expanded = !collapsed[big + '|' + o]
     return {
-      owner: o, name, initial: w.i, noChip: !!opts.noChip, chipBg: w.bg, chipColor: w.c,
+      owner: o, name, initial: groupInitial(o), noChip: !!opts.noChip, chipBg: w.bg, chipColor: w.c,
       countText: allItems.length ? allItems.length + '건' : '',
       subtotalText: won(sum(allItems)) + '원', expanded,
       sections: mkSections(sections || [{ hasLabel: false, items: allItems }]),
     }
   }
+  // 슬롯 이니셜 = 표시 이름 첫 글자
+  const groupInitial = (o) => ((names && names[o] && names[o][0]) || (ownerOf(o).i))
 
   let ownerGroups = []
   if (big === 'savings') {
     ownerGroups = d.savings.length ? [mkGroup('공동', '이번 달 저축·투자', d.savings, null, { noChip: true })] : []
   } else if (big === 'income') {
-    ownerGroups = OWNERS.map((o) => mkGroup(o, o, d.income.filter((x) => x.owner === o), null)).filter((g) => g.sections[0].items.length > 0)
+    ownerGroups = OWNERS.map((o) => mkGroup(o, dispName(o), d.income.filter((x) => x.owner === o), null)).filter((g) => g.sections[0].items.length > 0)
   } else {
     const owners = expOwner === '전체' ? ['이현', '혜원'] : [expOwner]
     ownerGroups = owners.map((o) => {
@@ -102,14 +105,14 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
       const secs = []
       if (fx.length) secs.push({ hasLabel: true, label: '고정지출', color: '#3182F6', subtotalText: won(sum(fx)) + '원', items: fx })
       if (vr.length) secs.push({ hasLabel: true, label: '변동지출', color: '#FF8A3D', subtotalText: won(sum(vr)) + '원', items: vr, noPill: true })
-      return mkGroup(o, o, all, secs)
+      return mkGroup(o, dispName(o), all, secs)
     }).filter((g) => g.sections.length > 0)
   }
   const monthEmpty = ownerGroups.length === 0
 
   let grandLabel, grandTotalText
   if (big === 'expense' && expOwner !== '전체') {
-    grandLabel = expOwner + ' 지출 합계'
+    grandLabel = dispName(expOwner) + ' 지출 합계'
     grandTotalText = won(sum(d.expense.filter((x) => x.owner === expOwner))) + '원'
   } else {
     grandLabel = { income: '월 총수입', expense: '월 총지출', savings: '월 저축 합계' }[big]
@@ -136,7 +139,7 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
         <div style={{ display: 'flex', gap: 6, padding: '10px 16px 2px' }}>
           {['전체', '이현', '혜원'].map((o) => (
             <div key={o} className="press" onClick={() => { setExpOwner(o); setSwipeOpenId(null) }}
-              style={{ flex: 1, textAlign: 'center', padding: 9, borderRadius: 11, fontSize: 14, fontWeight: 700, ...(expOwner === o ? { background: '#3182F6', color: '#fff' } : { background: '#fff', color: '#8B95A1' }) }}>{o}</div>
+              style={{ flex: 1, textAlign: 'center', padding: 9, borderRadius: 11, fontSize: 14, fontWeight: 700, ...(expOwner === o ? { background: '#3182F6', color: '#fff' } : { background: '#fff', color: '#8B95A1' }) }}>{o === '전체' ? '전체' : dispName(o)}</div>
           ))}
         </div>
       )}
@@ -185,6 +188,10 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
       </div>
 
       <div className="press" onClick={onAdd} style={{ margin: '12px 16px 0', background: '#E8F3FF', borderRadius: 14, padding: 14, textAlign: 'center', fontSize: 15, fontWeight: 700, color: '#3182F6' }}>+ 항목 추가</div>
+
+      {big === 'expense' && (
+        <div className="press" onClick={onLoadFixed} style={{ margin: '10px 16px 0', background: '#F2F4F6', borderRadius: 14, padding: 14, textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#4E5968' }}>↻ 전월 고정지출 불러오기</div>
+      )}
       <div style={{ height: 8 }} />
     </div>
   )
