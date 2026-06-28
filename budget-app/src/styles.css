@@ -37,7 +37,6 @@ input { font-family: inherit; }
   transition: transform .28s cubic-bezier(.2,.8,.2,1);
   background: #fff; position: relative; z-index: 1; touch-action: pan-y;
 }
-.swrow[data-open="true"] .swcontent { transform: translateX(-84px); }
 
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

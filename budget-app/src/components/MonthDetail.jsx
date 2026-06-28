@@ -4,34 +4,41 @@ import { sum } from '../lib/compute.js'
 
 const ownerOf = (o) => OWN[o] || OWN.기타
 
-// ---- one swipeable row (swipe left to reveal delete, tap to edit) ----
-function SwipeRow({ row, list, open, setSwipeOpenId, onEdit, onDelete }) {
+// ---- one swipeable row (끝까지 밀어서 삭제, 짧게 밀면 자동 원위치, 탭하면 수정) ----
+const SWIPE_THRESH = 0.42 // 행 너비의 비율을 넘기면 삭제
+
+function SwipeRow({ row, list, onEdit, onDelete }) {
   const ref = useRef(null)
+  const bgRef = useRef(null)
   const st = useRef(null)
 
   const down = (e) => {
-    st.current = { x: e.clientX, moved: false, open }
+    const w = ref.current ? ref.current.offsetWidth : 320
+    st.current = { x: e.clientX, w, moved: false }
     try { e.currentTarget.setPointerCapture(e.pointerId) } catch (_) {}
   }
   const move = (e) => {
     const s = st.current; if (!s) return
-    const dx = e.clientX - s.x
+    let dx = e.clientX - s.x
     if (Math.abs(dx) > 4) s.moved = true
-    const tx = Math.max(-84, Math.min(0, (s.open ? -84 : 0) + dx))
-    if (ref.current) { ref.current.style.transition = 'none'; ref.current.style.transform = `translateX(${tx}px)` }
+    dx = Math.max(-s.w, Math.min(0, dx))
+    if (ref.current) { ref.current.style.transition = 'none'; ref.current.style.transform = `translateX(${dx}px)` }
+    if (bgRef.current) bgRef.current.style.background = (-dx > s.w * SWIPE_THRESH) ? '#D92B3A' : '#F04452'
   }
   const up = (e) => {
     const s = st.current; st.current = null; if (!s) return
-    const dx = e.clientX - s.x
-    if (ref.current) { ref.current.style.transition = ''; ref.current.style.transform = '' }
+    const dx = Math.max(-s.w, Math.min(0, e.clientX - s.x))
+    if (ref.current) { ref.current.style.transition = ''; ref.current.style.transform = '' } // 항상 원위치(스냅백)
+    if (bgRef.current) bgRef.current.style.background = '#F04452'
     if (!s.moved) { onEdit(list, row.id); return }
-    const willOpen = ((s.open ? -84 : 0) + dx) < -42
-    setSwipeOpenId(willOpen ? row.id : null)
+    if (-dx > s.w * SWIPE_THRESH) {
+      if (window.confirm('삭제하시겠습니까?')) onDelete(list, row.id)
+    }
   }
 
   return (
-    <div className="swrow" data-open={String(open)}>
-      <div className="press" onClick={() => onDelete(list, row.id)} style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 84, background: '#F04452', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, zIndex: 0 }}>삭제</div>
+    <div className="swrow">
+      <div ref={bgRef} style={{ position: 'absolute', inset: 0, background: '#F04452', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 24, fontSize: 14, fontWeight: 700, zIndex: 0 }}>삭제</div>
       <div ref={ref} className="swcontent" onPointerDown={down} onPointerMove={move} onPointerUp={up}
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: '1px solid #F4F6F8', background: '#fff', boxShadow: row.accent }}>
         <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, background: row.tileBg }}>{row.tileEmoji}</div>
@@ -70,7 +77,7 @@ function buildRow(item, big, noPill) {
   return base
 }
 
-export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, collapsed, toggleCollapse, swipeOpenId, setSwipeOpenId, onEdit, onDelete, onAdd, nav, names, onLoadFixed }) {
+export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, collapsed, toggleCollapse, onEdit, onDelete, onAdd, nav, names, onLoadFixed }) {
   const dispName = (o) => (names && names[o]) || o
   // ---- build owner groups ----
   const mkSections = (sections) => sections.map((sec) => ({
@@ -130,7 +137,7 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
 
       <div style={{ display: 'flex', gap: 6, padding: '2px 16px 4px' }}>
         {BIGS.map((b) => (
-          <div key={b[0]} className="press" onClick={() => { setBig(b[0]); setSwipeOpenId(null) }}
+          <div key={b[0]} className="press" onClick={() => setBig(b[0])}
             style={{ flex: 1, textAlign: 'center', padding: 11, borderRadius: 12, fontSize: 15, fontWeight: 700, ...(big === b[0] ? { background: '#191F28', color: '#fff' } : { background: '#fff', color: '#8B95A1' }) }}>{b[1]}</div>
         ))}
       </div>
@@ -138,7 +145,7 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
       {big === 'expense' && (
         <div style={{ display: 'flex', gap: 6, padding: '10px 16px 2px' }}>
           {['전체', '이현', '혜원'].map((o) => (
-            <div key={o} className="press" onClick={() => { setExpOwner(o); setSwipeOpenId(null) }}
+            <div key={o} className="press" onClick={() => setExpOwner(o)}
               style={{ flex: 1, textAlign: 'center', padding: 9, borderRadius: 11, fontSize: 14, fontWeight: 700, ...(expOwner === o ? { background: '#3182F6', color: '#fff' } : { background: '#fff', color: '#8B95A1' }) }}>{o === '전체' ? '전체' : dispName(o)}</div>
           ))}
         </div>
@@ -168,8 +175,7 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
                     </div>
                   )}
                   {sec.items.map((it) => (
-                    <SwipeRow key={it.raw.id} row={it.row} list={listKey} open={swipeOpenId === it.raw.id}
-                      setSwipeOpenId={setSwipeOpenId} onEdit={onEdit} onDelete={onDelete} />
+                    <SwipeRow key={it.raw.id} row={it.row} list={listKey} onEdit={onEdit} onDelete={onDelete} />
                   ))}
                 </div>
               ))}
