@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { won, OWN, FCAT, CATS, SAV_CATS, savMeta } from '../lib/constants.js'
+import Keypad from './Keypad.jsx'
 
 const overlay = { position: 'absolute', inset: 0, zIndex: 52, background: 'rgba(20,30,50,.4)', animation: 'fadeIn .2s' }
 const sheet = { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 53, maxHeight: '88%', overflowY: 'auto', background: '#fff', borderRadius: '26px 26px 0 0', padding: '10px 20px calc(28px + env(safe-area-inset-bottom))', animation: 'sheetUp .32s cubic-bezier(.2,.85,.25,1)' }
@@ -17,7 +18,11 @@ export default function EditModal({ target, onClose, onSave, names }) {
   const hasSavCat = e.list === 'savings'
   const ownerList = e.list === 'expense' ? ['이현', '혜원'] : ['이현', '혜원', '기타']
   const title = { income: '수입 수정', expense: '지출 수정', savings: '저축 수정' }[e.list]
-  const amountText = e.amount ? won(parseInt((e.amount + '').replace(/[^\d]/g, '')) || 0) : ''
+  const amountDigits = (e.amount + '').replace(/[^\d]/g, '')
+  const amountText = amountDigits ? won(parseInt(amountDigits)) : '0'
+  const amountKey = (k) => set({
+    amount: (() => { let a = (e.amount + '').replace(/[^\d]/g, ''); if (k === '⌫') a = a.slice(0, -1); else if (a.length < 9) a = (a === '0' ? '' : a) + k; return a })(),
+  })
 
   const ownerStyle = (o, sel) => { const w = OWN[o]; return { flex: 1, textAlign: 'center', padding: 11, borderRadius: 12, fontSize: 14, fontWeight: 700, ...(sel ? { background: w.bg, color: w.c, border: `1.5px solid ${w.c}` } : { background: '#F8FAFB', color: '#8B95A1', border: '1.5px solid transparent' }) } }
 
@@ -40,7 +45,11 @@ export default function EditModal({ target, onClose, onSave, names }) {
         <input value={e.name} onChange={(ev) => set({ name: ev.target.value })} style={{ ...inputStyle, marginBottom: 16 }} />
 
         <div style={labelStyle}>금액</div>
-        <input value={amountText} onChange={(ev) => set({ amount: ev.target.value })} inputMode="numeric" style={{ ...inputStyle, fontSize: 18, fontWeight: 800, marginBottom: 16 }} />
+        <div style={{ background: '#F2F4F6', borderRadius: 13, padding: '14px 16px', marginBottom: 12, textAlign: 'right' }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: amountDigits ? '#191F28' : '#C5CCD3' }}>{amountText}</span>
+          <span style={{ fontSize: 16, fontWeight: 700, color: '#191F28', marginLeft: 3 }}>원</span>
+        </div>
+        <div style={{ marginBottom: 16 }}><Keypad onKey={amountKey} /></div>
 
         {hasOwner && (
           <>
