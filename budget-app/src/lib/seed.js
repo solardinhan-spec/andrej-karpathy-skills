@@ -34,8 +34,8 @@ export function buildSeed() {
     ],
     savings: sav([300000, 200000, 70000, 200000, 0]),
     savingsCards: [
-      { key: '저축', prev: 1500000, curr: 1800000 }, { key: '투자', prev: 900000, curr: 1100000 },
-      { key: '청약통장', prev: 500000, curr: 570000 }, { key: '비상예비금', prev: 1000000, curr: 1200000 },
+      { key: '저축', curr: 1800000 }, { key: '투자', curr: 1100000 },
+      { key: '청약통장', curr: 570000 }, { key: '비상예비금', curr: 1200000 },
     ],
   }
   const jul = {
@@ -43,8 +43,8 @@ export function buildSeed() {
     expense: fixedExp('l'),
     savings: sav([0, 0, 0, 0, 0]),
     savingsCards: [
-      { key: '저축', prev: 1800000, curr: 1800000 }, { key: '투자', prev: 1100000, curr: 1100000 },
-      { key: '청약통장', prev: 570000, curr: 570000 }, { key: '비상예비금', prev: 1200000, curr: 1200000 },
+      { key: '저축', curr: 1800000 }, { key: '투자', curr: 1100000 },
+      { key: '청약통장', curr: 570000 }, { key: '비상예비금', curr: 1200000 },
     ],
   }
   return { '2026-06': jun, '2026-07': jul }

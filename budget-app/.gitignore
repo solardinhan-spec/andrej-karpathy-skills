@@ -6,5 +6,4 @@ dist-ssr
 *.local
 .DS_Store
 .vercel
-scripts/shot-*.png
-scripts/s-*.png
+scripts/*.png

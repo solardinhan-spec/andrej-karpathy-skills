@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useBudget } from './lib/useBudget.js'
 import { compute } from './lib/compute.js'
 import { MONTH_KEYS, MONTH_LABELS } from './lib/constants.js'
@@ -7,10 +7,13 @@ import MonthDetail from './components/MonthDetail.jsx'
 import Savings from './components/Savings.jsx'
 import Stats from './components/Stats.jsx'
 import TabBar from './components/TabBar.jsx'
+import MonthNav from './components/MonthNav.jsx'
 import QuickModal from './components/QuickModal.jsx'
 import EditModal from './components/EditModal.jsx'
+import SavingsCardModal from './components/SavingsCardModal.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import Settings from './components/Settings.jsx'
+import Toast from './components/Toast.jsx'
 
 function Center({ children }) {
   return <div className="app"><div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 28, color: '#8B95A1', fontSize: 15 }}>{children}</div></div>
@@ -27,7 +30,10 @@ export default function App() {
   const [swipeOpenId, setSwipeOpenId] = useState(null)
   const [quickOpen, setQuickOpen] = useState(false)
   const [edit, setEdit] = useState(null)
+  const [cardEdit, setCardEdit] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [toast, setToast] = useState(null)
+  const toastTimer = useRef(null)
 
   if (status === 'loading') return <Center>불러오는 중…</Center>
   if (status === 'error') return <Center>문제가 발생했어요.<br />{error}</Center>
@@ -50,7 +56,23 @@ export default function App() {
     setEdit({ list, id, name: item.title, amount: String(item.amount), memo: item.memo || '', owner: item.owner, kind: item.kind || '변동', cat: item.cat || (list === 'savings' ? (item.title || '저축') : '생활') })
   }
 
-  const onDelete = (list, id) => { deleteEntry(mk, list, id); setSwipeOpenId(null) }
+  const showToast = (next) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast(next)
+    toastTimer.current = setTimeout(() => setToast(null), 4000)
+  }
+
+  const onDelete = (list, id) => {
+    const item = data[mk][list].find((x) => x.id === id)
+    deleteEntry(mk, list, id)
+    setSwipeOpenId(null)
+    if (item) {
+      const { id: _omit, ...fields } = item
+      showToast({ message: '삭제됐어요', actionLabel: '되돌리기', onAction: () => { addEntry(mk, list, fields); setToast(null) } })
+    }
+  }
+
+  const saveCard = async (key, patch) => { await updateSavingsCard(mk, key, patch); setCardEdit(null) }
 
   const onAddItem = async () => {
     let item
@@ -74,40 +96,51 @@ export default function App() {
 
   const saveEdit = async (list, id, patch) => { await updateEntry(mk, list, id, patch); setEdit(null) }
 
+  const goPrev = () => { setMonthIdx(Math.max(0, monthIdx - 1)); setSwipeOpenId(null) }
+  const goNext = () => { setMonthIdx(Math.min(MONTH_KEYS.length - 1, monthIdx + 1)); setSwipeOpenId(null) }
+  const canPrev = monthIdx > 0
+  const canNext = monthIdx < MONTH_KEYS.length - 1
+  const navSm = <MonthNav label={monthLabel} onPrev={goPrev} onNext={goNext} canPrev={canPrev} canNext={canNext} />
+  const navLg = <MonthNav size="lg" label={monthLabel} onPrev={goPrev} onNext={goNext} canPrev={canPrev} canNext={canNext} />
+
+  const anyModalOpen = quickOpen || !!edit || !!cardEdit || showSettings
+
   return (
     <div className="app">
       <div className="scroll">
-        {tab === 'home' && (
-          <Home m={m} monthLabel={monthLabel}
-            onPrev={() => { setMonthIdx(Math.max(0, monthIdx - 1)); setSwipeOpenId(null) }}
-            onNext={() => { setMonthIdx(Math.min(MONTH_KEYS.length - 1, monthIdx + 1)); setSwipeOpenId(null) }}
-            canPrev={monthIdx > 0} canNext={monthIdx < MONTH_KEYS.length - 1} />
-        )}
+        {tab === 'home' && <Home m={m} nav={navLg} />}
         {tab === 'month' && (
           <MonthDetail d={d} big={big} setBig={setBig} expOwner={expOwner} setExpOwner={setExpOwner}
             collapsed={collapsed} toggleCollapse={toggleCollapse} swipeOpenId={swipeOpenId} setSwipeOpenId={setSwipeOpenId}
-            onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} monthLabel={monthLabel} />
+            onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} nav={navSm} />
         )}
-        {tab === 'savings' && <Savings d={d} monthLabel={monthLabel} onSaveCard={(key, patch) => updateSavingsCard(mk, key, patch)} />}
-        {tab === 'stats' && <Stats data={data} m={m} monthIdx={monthIdx} monthLabel={monthLabel} />}
+        {tab === 'savings' && <Savings d={d} data={data} monthIdx={monthIdx} nav={navSm} onEditCard={setCardEdit} />}
+        {tab === 'stats' && <Stats data={data} m={m} monthIdx={monthIdx} nav={navSm} />}
       </div>
 
-      {/* settings button */}
-      <div className="press" onClick={() => setShowSettings(true)}
-        style={{ position: 'absolute', top: 'calc(10px + env(safe-area-inset-top))', right: 14, zIndex: 35, width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(30,50,90,.08)' }}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#4E5968" strokeWidth="1.8" /><path d="M19.4 13a1.7 1.7 0 00.4 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.4 1.7 1.7 0 00-1 1.5V19a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.4-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.4-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.4H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.4l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.4 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" stroke="#4E5968" strokeWidth="1.6" /></svg>
-      </div>
+      {/* settings button (모달 열릴 땐 숨김) */}
+      {!anyModalOpen && (
+        <div className="press" onClick={() => setShowSettings(true)}
+          style={{ position: 'absolute', top: 'calc(10px + env(safe-area-inset-top))', right: 14, zIndex: 35, width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(30,50,90,.08)' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#4E5968" strokeWidth="1.8" /><path d="M19.4 13a1.7 1.7 0 00.4 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.4 1.7 1.7 0 00-1 1.5V19a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.4-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.4-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.4H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.4l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.4 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" stroke="#4E5968" strokeWidth="1.6" /></svg>
+        </div>
+      )}
 
       <TabBar tab={tab} setTab={(t) => { setTab(t); setSwipeOpenId(null) }} />
 
-      {/* FAB */}
-      <div className="press" onClick={() => setQuickOpen(true)}
-        style={{ position: 'absolute', right: 18, bottom: 'calc(88px + env(safe-area-inset-bottom))', zIndex: 31, width: 56, height: 56, borderRadius: '50%', background: '#3182F6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(49,130,246,.42)' }}>
-        <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" /></svg>
-      </div>
+      {/* FAB (모달 열릴 땐 숨김) */}
+      {!anyModalOpen && (
+        <div className="press" onClick={() => setQuickOpen(true)}
+          style={{ position: 'absolute', right: 18, bottom: 'calc(88px + env(safe-area-inset-bottom))', zIndex: 31, width: 56, height: 56, borderRadius: '50%', background: '#3182F6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 20px rgba(49,130,246,.42)' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" /></svg>
+        </div>
+      )}
+
+      {toast && <Toast message={toast.message} actionLabel={toast.actionLabel} onAction={toast.onAction} />}
 
       {quickOpen && <QuickModal onClose={() => setQuickOpen(false)} onSave={saveQuick} />}
       {edit && <EditModal target={edit} onClose={() => setEdit(null)} onSave={saveEdit} />}
+      {cardEdit && <SavingsCardModal card={cardEdit} onClose={() => setCardEdit(null)} onSave={saveCard} />}
       {showSettings && <Settings mode={mode} household={household} data={data} onClose={() => setShowSettings(false)} />}
     </div>
   )

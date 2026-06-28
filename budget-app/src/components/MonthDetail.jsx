@@ -70,7 +70,7 @@ function buildRow(item, big, noPill) {
   return base
 }
 
-export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, collapsed, toggleCollapse, swipeOpenId, setSwipeOpenId, onEdit, onDelete, onAdd, monthLabel }) {
+export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, collapsed, toggleCollapse, swipeOpenId, setSwipeOpenId, onEdit, onDelete, onAdd, nav }) {
   // ---- build owner groups ----
   const mkSections = (sections) => sections.map((sec) => ({
     hasLabel: !!sec.hasLabel, label: sec.label || '', subtotalText: sec.subtotalText || '', color: sec.color || '#8B95A1',
@@ -122,7 +122,7 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 58px 10px 20px' }}>
         <span style={{ fontSize: 22, fontWeight: 800, color: '#191F28' }}>월별 상세</span>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#8B95A1' }}>{monthLabel}</span>
+        {nav}
       </div>
 
       <div style={{ display: 'flex', gap: 6, padding: '2px 16px 4px' }}>

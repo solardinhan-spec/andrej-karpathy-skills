@@ -64,12 +64,18 @@ export function OwnerBars({ rows, total }) {
 
 export function LineChart({ data }) {
   const W = 326, H = 140, pad = 22
-  const max = Math.max(...data.map((d) => d.v)) * 1.1 || 1
-  const X = (i) => pad + (i * (W - pad * 2)) / (data.length - 1)
-  const Y = (v) => H - 24 - (v / max) * (H - 44)
+  const top = 14, bot = H - 24 // vertical drawing band
+  const n = data.length
+  const vals = data.map((d) => d.v)
+  const min = Math.min(...vals, 0)
+  let max = Math.max(...vals, 0)
+  if (max === min) max = min + 1
+  const X = (i) => (n === 1 ? W / 2 : pad + (i * (W - pad * 2)) / (n - 1))
+  const Y = (v) => bot - ((v - min) / (max - min)) * (bot - top)
+  const zeroY = Y(0)
   const pts = data.map((d, i) => [X(i), Y(d.v)])
   const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0] + ' ' + p[1]).join(' ')
-  const area = line + ' L' + X(data.length - 1) + ' ' + (H - 24) + ' L' + pad + ' ' + (H - 24) + ' Z'
+  const area = line + ' L' + X(n - 1) + ' ' + zeroY + ' L' + X(0) + ' ' + zeroY + ' Z'
   return (
     <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`}>
       <defs>
@@ -78,10 +84,11 @@ export function LineChart({ data }) {
           <stop offset="100%" stopColor="#3182F6" stopOpacity="0" />
         </linearGradient>
       </defs>
+      {min < 0 && <line x1={pad} y1={zeroY} x2={W - pad} y2={zeroY} stroke="#E5E8EB" strokeWidth="1" strokeDasharray="3 3" />}
       <path d={area} fill="url(#lg)" />
       <path d={line} fill="none" stroke="#3182F6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {pts.map((p, i) => (
-        <circle key={i} cx={p[0]} cy={p[1]} r={i === data.length - 1 ? 4.5 : 3} fill="#fff" stroke="#3182F6" strokeWidth="2.5" />
+        <circle key={i} cx={p[0]} cy={p[1]} r={i === n - 1 ? 4.5 : 3} fill="#fff" stroke="#3182F6" strokeWidth="2.5" />
       ))}
       {data.map((d, i) => (
         <text key={'t' + i} x={X(i)} y={H - 6} fontSize="11" fill="#8B95A1" textAnchor="middle" fontWeight="600">{d.m}</text>
