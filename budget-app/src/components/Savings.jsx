@@ -1,18 +1,20 @@
-import { won, SAV_CATS, savMeta, START_MONTH, addMonth, monthShort } from '../lib/constants.js'
+import { won, SAV_CATS, savMeta, START_MONTH, addMonth, monthShort, ALL_MONTHS } from '../lib/constants.js'
 import { sum, compute } from '../lib/compute.js'
 import { LineChart } from './Charts.jsx'
 
-export default function Savings({ d, data, monthKey, nav, onEditCard }) {
-  const currOf = (cards, key) => (cards.find((c) => c.key === key)?.curr) || 0
+export default function Savings({ d, data, monthKey, nav }) {
+  // 누적 자산 = START_MONTH~해당 월의 '월별 저축' 납입을 카테고리별로 합산(완전 연동).
+  // 저번 달 = 전월까지의 누적(없으면 0).
+  const contrib = (mk, cat) => sum((data[mk]?.savings || []).filter((s) => (s.cat || s.title) === cat))
+  const cumulative = (cat, untilMonth) => ALL_MONTHS
+    .filter((k) => k >= START_MONTH && k <= untilMonth)
+    .reduce((acc, k) => acc + contrib(k, cat), 0)
 
-  // '저번 달'은 직전 달(≥START)의 '이번 달'에서 자동 파생 (첫 달=0).
   const prevKey = addMonth(monthKey, -1)
-  const usePrev = prevKey >= START_MONTH
-  const prevCards = usePrev && data[prevKey] ? data[prevKey].savingsCards : []
   const cards = SAV_CATS.map((key) => ({
     key,
-    curr: currOf(d.savingsCards, key),
-    prev: usePrev ? currOf(prevCards, key) : 0,
+    curr: cumulative(key, monthKey),
+    prev: prevKey >= START_MONTH ? cumulative(key, prevKey) : 0,
   }))
   const totalAsset = sum(cards, (x) => x.curr)
   const assetGrowth = sum(cards, (x) => x.curr - x.prev)
@@ -42,7 +44,7 @@ export default function Savings({ d, data, monthKey, nav, onEditCard }) {
         const delta = s.curr - s.prev
         const m = savMeta(s.key)
         return (
-          <div key={s.key} className="press" onClick={() => onEditCard({ key: s.key, curr: s.curr, prev: s.prev })} style={{ margin: '12px 16px 0', background: '#fff', borderRadius: 18, padding: '18px 20px', boxShadow: '0 4px 16px rgba(30,50,90,.05)', cursor: 'pointer' }}>
+          <div key={s.key} style={{ margin: '12px 16px 0', background: '#fff', borderRadius: 18, padding: '18px 20px', boxShadow: '0 4px 16px rgba(30,50,90,.05)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: m.bg }}>{m.emoji}</div>
               <span style={{ fontSize: 16, fontWeight: 700, color: '#191F28' }}>{s.key}</span>
@@ -63,7 +65,7 @@ export default function Savings({ d, data, monthKey, nav, onEditCard }) {
         )
       })}
 
-      <div style={{ margin: '10px 16px 0', fontSize: 12, color: '#B0B8C1', textAlign: 'center' }}>카드를 탭하면 이번 달 금액을 수정할 수 있어요</div>
+      <div style={{ margin: '10px 16px 0', fontSize: 12, color: '#B0B8C1', textAlign: 'center' }}>월별 → 저축에서 입력하면 자동으로 누적돼요</div>
 
       <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 22, padding: '20px 18px', boxShadow: '0 4px 16px rgba(30,50,90,.05)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: '#191F28', padding: '0 4px 4px' }}>월 잔여금 이월 추이</div>
