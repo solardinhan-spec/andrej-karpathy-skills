@@ -33,19 +33,11 @@ export function buildSeed() {
       ...v('jvh', '혜원', [['스타벅스', 5800, ''], ['김밥천국', 12000, ''], ['올리브영', 18900, ''], ['CGV 영화', 28000, '']]),
     ],
     savings: sav([300000, 200000, 70000, 200000, 0]),
-    savingsCards: [
-      { key: '저축', curr: 1800000 }, { key: '투자', curr: 1100000 },
-      { key: '청약통장', curr: 570000 }, { key: '비상예비금', curr: 1200000 },
-    ],
   }
   const jul = {
     income: [],
     expense: fixedExp('l'),
     savings: sav([0, 0, 0, 0, 0]),
-    savingsCards: [
-      { key: '저축', curr: 1800000 }, { key: '투자', curr: 1100000 },
-      { key: '청약통장', curr: 570000 }, { key: '비상예비금', curr: 1200000 },
-    ],
   }
   return { '2026-06': jun, '2026-07': jul }
 }

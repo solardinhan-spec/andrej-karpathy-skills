@@ -10,7 +10,6 @@ import TabBar from './components/TabBar.jsx'
 import MonthNav from './components/MonthNav.jsx'
 import QuickModal from './components/QuickModal.jsx'
 import EditModal from './components/EditModal.jsx'
-import SavingsCardModal from './components/SavingsCardModal.jsx'
 import MonthPicker from './components/MonthPicker.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import Settings from './components/Settings.jsx'
@@ -21,7 +20,7 @@ function Center({ children }) {
 }
 
 export default function App() {
-  const { mode, status, error, household, names, data, createHousehold, joinHousehold, addEntry, addEntries, updateEntry, deleteEntry, updateSavingsCard, updateNames, resetData } = useBudget()
+  const { mode, status, error, household, names, data, createHousehold, joinHousehold, addEntry, addEntries, updateEntry, deleteEntry, updateNames, resetData } = useBudget()
 
   const [tab, setTab] = useState('home')
   const [monthKey, setMonthKey] = useState(() => clampMonth(currentMonth()))
@@ -30,7 +29,6 @@ export default function App() {
   const [collapsed, setCollapsed] = useState({})
   const [quickOpen, setQuickOpen] = useState(false)
   const [edit, setEdit] = useState(null)
-  const [cardEdit, setCardEdit] = useState(null)
   const [monthPickerOpen, setMonthPickerOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [toast, setToast] = useState(null)
@@ -70,7 +68,6 @@ export default function App() {
     }
   }
 
-  const saveCard = async (key, patch) => { await updateSavingsCard(mk, key, patch); setCardEdit(null) }
 
   const onAddItem = async () => {
     let item
@@ -117,7 +114,7 @@ export default function App() {
   const navSm = <MonthNav label={monthLabel} onPrev={goPrev} onNext={goNext} canPrev={canPrev} canNext={canNext} onPick={openPicker} />
   const navLg = <MonthNav size="lg" label={monthLabel} onPrev={goPrev} onNext={goNext} canPrev={canPrev} canNext={canNext} onPick={openPicker} />
 
-  const anyModalOpen = quickOpen || !!edit || !!cardEdit || showSettings || monthPickerOpen
+  const anyModalOpen = quickOpen || !!edit || showSettings || monthPickerOpen
 
   return (
     <div className="app">
@@ -128,7 +125,7 @@ export default function App() {
             collapsed={collapsed} toggleCollapse={toggleCollapse}
             onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} nav={navSm} names={names} onLoadFixed={onLoadFixed} />
         )}
-        {tab === 'savings' && <Savings d={d} data={data} monthKey={monthKey} nav={navSm} onEditCard={setCardEdit} />}
+        {tab === 'savings' && <Savings d={d} data={data} monthKey={monthKey} nav={navSm} />}
         {tab === 'stats' && <Stats data={data} m={m} monthKey={monthKey} nav={navSm} names={names} />}
       </div>
 
@@ -154,7 +151,6 @@ export default function App() {
 
       {quickOpen && <QuickModal onClose={() => setQuickOpen(false)} onSave={saveQuick} names={names} />}
       {edit && <EditModal target={edit} onClose={() => setEdit(null)} onSave={saveEdit} names={names} />}
-      {cardEdit && <SavingsCardModal card={cardEdit} onClose={() => setCardEdit(null)} onSave={saveCard} />}
       {monthPickerOpen && <MonthPicker current={monthKey} onSelect={(k) => { setMonthKey(clampMonth(k)); setMonthPickerOpen(false) }} onClose={() => setMonthPickerOpen(false)} />}
       {showSettings && <Settings mode={mode} household={household} names={names} data={data} onUpdateNames={updateNames} onReset={resetData} onClose={() => setShowSettings(false)} />}
     </div>

@@ -6,7 +6,7 @@ import { buildSeed } from './seed.js'
 const LOCAL_KEY = 'budget:data:v1'
 const NAMES_KEY = 'budget:names'
 
-export const emptyMonth = () => ({ income: [], expense: [], savings: [], savingsCards: [] })
+export const emptyMonth = () => ({ income: [], expense: [], savings: [] })
 
 function blankData() {
   const out = {}
@@ -18,15 +18,11 @@ function mapEntry(r) {
   return { id: r.id, owner: r.owner, kind: r.kind, cat: r.cat, title: r.title, amount: Number(r.amount) || 0, memo: r.memo || '' }
 }
 
-function groupRows(entries, cards) {
+function groupRows(entries) {
   const out = blankData()
   for (const e of entries) {
     if (!out[e.month]) out[e.month] = emptyMonth()
     if (out[e.month][e.type]) out[e.month][e.type].push(mapEntry(e))
-  }
-  for (const c of cards) {
-    if (!out[c.month]) out[c.month] = emptyMonth()
-    out[c.month].savingsCards.push({ key: c.key, prev: Number(c.prev) || 0, curr: Number(c.curr) || 0 })
   }
   return out
 }
@@ -54,12 +50,9 @@ export function useBudget() {
 
   // ---------- CLOUD reload ----------
   const reloadCloud = useCallback(async (hid) => {
-    const [ents, cards] = await Promise.all([
-      supabase.from('entries').select('*').eq('household_id', hid).order('created_at', { ascending: true }),
-      supabase.from('savings_cards').select('*').eq('household_id', hid).order('created_at', { ascending: true }),
-    ])
+    const ents = await supabase.from('entries').select('*').eq('household_id', hid).order('created_at', { ascending: true })
     if (ents.error) throw ents.error
-    setData(groupRows(ents.data || [], cards.data || []))
+    setData(groupRows(ents.data || []))
   }, [])
 
   // 이름 컬럼은 마이그레이션 전이면 없을 수 있음 → 실패해도 앱은 정상 동작(기본 이름 유지).
@@ -73,24 +66,20 @@ export function useBudget() {
   const seedCloud = useCallback(async (hid) => {
     const seed = buildSeed()
     const entryRows = []
-    const cardRows = []
     for (const [month, m] of Object.entries(seed)) {
       for (const t of ['income', 'expense', 'savings']) {
         for (const it of m[t]) {
           entryRows.push({ household_id: hid, month, type: t, owner: it.owner || null, kind: it.kind || null, cat: it.cat || null, title: it.title, amount: it.amount, memo: it.memo || '' })
         }
       }
-      for (const c of m.savingsCards) cardRows.push({ household_id: hid, month, key: c.key, prev: 0, curr: c.curr })
     }
     await supabase.from('entries').insert(entryRows)
-    await supabase.from('savings_cards').insert(cardRows)
   }, [])
 
   const subscribeCloud = useCallback((hid) => {
     const ch = supabase
       .channel('budget-' + hid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `household_id=eq.${hid}` }, () => reloadCloud(hid))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_cards', filter: `household_id=eq.${hid}` }, () => reloadCloud(hid))
       .subscribe()
     return ch
   }, [reloadCloud])
@@ -245,35 +234,6 @@ export function useBudget() {
     })
   }, [mode, reloadCloud])
 
-  // Upsert a savings asset card (저축 탭) identified by month + key.
-  const updateSavingsCard = useCallback(async (month, key, patch) => {
-    if (mode === 'cloud') {
-      const hid = hidRef.current
-      const { data: existing } = await supabase
-        .from('savings_cards').select('id').eq('household_id', hid).eq('month', month).eq('key', key).maybeSingle()
-      if (existing) {
-        const { error: e } = await supabase.from('savings_cards').update(patch).eq('id', existing.id)
-        if (e) throw e
-      } else {
-        const { error: e } = await supabase.from('savings_cards').insert({ household_id: hid, month, key, prev: patch.prev || 0, curr: patch.curr || 0 })
-        if (e) throw e
-      }
-      await reloadCloud(hid)
-      return
-    }
-    setData((prev) => {
-      const cur = prev[month] || emptyMonth()
-      const cards = cur.savingsCards
-      const exists = cards.some((c) => c.key === key)
-      const nextCards = exists
-        ? cards.map((c) => (c.key === key ? { ...c, ...patch } : c))
-        : [...cards, { key, prev: patch.prev || 0, curr: patch.curr || 0 }]
-      const next = { ...prev, [month]: { ...cur, savingsCards: nextCards } }
-      try { localStorage.setItem(LOCAL_KEY, JSON.stringify(next)) } catch (_) {}
-      return next
-    })
-  }, [mode, reloadCloud])
-
   // 구성원 이름 변경 (이현/혜원 슬롯의 표시 이름).
   const updateNames = useCallback(async (m1, m2) => {
     const n1 = (m1 || '').trim() || '이현'
@@ -293,7 +253,6 @@ export function useBudget() {
     if (mode === 'cloud') {
       const hid = hidRef.current
       await supabase.from('entries').delete().eq('household_id', hid)
-      await supabase.from('savings_cards').delete().eq('household_id', hid)
       await reloadCloud(hid)
     } else {
       const blank = blankData()
@@ -304,5 +263,5 @@ export function useBudget() {
 
   const names = { 이현: memberNames.m1, 혜원: memberNames.m2, 기타: '기타', 공동: '공동' }
 
-  return { mode, status, error, household, names, data, createHousehold, joinHousehold, addEntry, addEntries, updateEntry, deleteEntry, updateSavingsCard, updateNames, resetData }
+  return { mode, status, error, household, names, data, createHousehold, joinHousehold, addEntry, addEntries, updateEntry, deleteEntry, updateNames, resetData }
 }
