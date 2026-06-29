@@ -28,6 +28,15 @@ export default function Settings({ mode, household, names, data, onUpdateNames, 
     setSavingName(true)
     try { await onUpdateNames(m1, m2); setSavedName(true); setTimeout(() => setSavedName(false), 1500) } catch (e) { alert('이름 변경 실패: ' + (e?.message || e)) } finally { setSavingName(false) }
   }
+  const forceUpdate = async () => {
+    try {
+      const regs = (await navigator.serviceWorker?.getRegistrations?.()) || []
+      await Promise.all(regs.map((r) => r.update()))
+      if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map((k) => caches.delete(k))) }
+    } catch (_) {}
+    location.reload()
+  }
+
   const doReset = async () => {
     setResetting(true)
     try { await onReset(); setConfirmReset(false); onClose() } catch (e) { alert('초기화 실패: ' + (e?.message || e)) } finally { setResetting(false) }
@@ -68,11 +77,15 @@ export default function Settings({ mode, household, names, data, onUpdateNames, 
           </div>
         )}
 
-        {/* 내보내기 */}
+        {/* 내보내기 / 최신화 */}
         <div style={{ height: 1, background: '#F2F4F6', margin: '20px 0' }} />
         <div className="press" onClick={onExport} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: 15, borderRadius: 14, background: '#EAF7EE', fontSize: 15, fontWeight: 700, color: '#1B9E54' }}>
           <span>📊</span>{exporting ? '내보내는 중…' : '엑셀로 내보내기'}
         </div>
+        <div className="press" onClick={forceUpdate} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 10, padding: 15, borderRadius: 14, background: '#EEF3FF', fontSize: 15, fontWeight: 700, color: '#3182F6' }}>
+          <span>🔄</span>앱 최신화(최신 버전 받기)
+        </div>
+        <div style={{ fontSize: 12, color: '#B0B8C1', marginTop: 6, textAlign: 'center' }}>화면이 예전 버전 같으면 눌러 최신화하세요</div>
 
         {/* 초기화 */}
         {!confirmReset ? (
