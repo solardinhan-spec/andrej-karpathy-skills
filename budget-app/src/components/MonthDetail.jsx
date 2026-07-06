@@ -25,21 +25,26 @@ function SwipeRow({ row, list, onEdit, onDelete }) {
     if (ref.current) { ref.current.style.transition = 'none'; ref.current.style.transform = `translateX(${dx}px)` }
     if (bgRef.current) bgRef.current.style.background = (-dx > s.w * SWIPE_THRESH) ? '#D92B3A' : '#F04452'
   }
+  const snapBack = () => {
+    if (ref.current) { ref.current.style.transition = ''; ref.current.style.transform = '' }
+    if (bgRef.current) bgRef.current.style.background = '#F04452'
+  }
   const up = (e) => {
     const s = st.current; st.current = null; if (!s) return
     const dx = Math.max(-s.w, Math.min(0, e.clientX - s.x))
-    if (ref.current) { ref.current.style.transition = ''; ref.current.style.transform = '' } // 항상 원위치(스냅백)
-    if (bgRef.current) bgRef.current.style.background = '#F04452'
+    snapBack() // 항상 원위치(스냅백)
     if (!s.moved) { onEdit(list, row.id); return }
     if (-dx > s.w * SWIPE_THRESH) {
       if (window.confirm('삭제하시겠습니까?')) onDelete(list, row.id)
     }
   }
+  // iOS에서 세로 스크롤 개입 등으로 취소되면 pointerup 대신 이게 호출됨 → 밀린 채 멈추지 않게 원위치
+  const cancel = () => { st.current = null; snapBack() }
 
   return (
     <div className="swrow">
       <div ref={bgRef} style={{ position: 'absolute', inset: 0, background: '#F04452', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 24, fontSize: 14, fontWeight: 700, zIndex: 0 }}>삭제</div>
-      <div ref={ref} className="swcontent" onPointerDown={down} onPointerMove={move} onPointerUp={up}
+      <div ref={ref} className="swcontent" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={cancel} onLostPointerCapture={cancel}
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', borderBottom: '1px solid #F4F6F8', background: '#fff', boxShadow: row.accent }}>
         <div style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, background: row.tileBg }}>{row.tileEmoji}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
