@@ -22,7 +22,7 @@ export default function BaseAssetModal({ card, onClose, onSave }) {
           <div style={{ width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, background: m.bg }}>{m.emoji}</div>
           <span style={{ fontSize: 18, fontWeight: 800, color: '#191F28' }}>{card.key} 시작 잔액</span>
         </div>
-        <div style={{ fontSize: 12, color: '#B0B8C1', margin: '0 2px 16px' }}>앱 시작 전부터 가지고 있던 현재 보유액을 입력하세요. 이후 월별 저축이 이 위에 누적돼요.</div>
+        <div style={{ fontSize: 12, color: '#B0B8C1', margin: '0 2px 16px', lineHeight: 1.5 }}>앱 시작 전부터 가지고 있던 현재 보유액을 입력하세요. 이후 월별 저축이 이 위에 누적돼요. <b style={{ color: '#8B95A1' }}>'이번 달 남은 금액'에는 영향을 주지 않아요.</b></div>
 
         <div style={labelStyle}>시작 잔액(현재 보유액)</div>
         <div style={{ background: '#F2F4F6', borderRadius: 13, padding: '14px 16px', marginBottom: 12, textAlign: 'right' }}>

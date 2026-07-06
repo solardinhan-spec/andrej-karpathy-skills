@@ -27,7 +27,7 @@ export default function Savings({ d, data, monthKey, nav, base = {}, onEditCard 
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 58px 10px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 72px 10px 20px' }}>
         <span style={{ fontSize: 22, fontWeight: 800, color: '#191F28' }}>저축·투자</span>
         {nav}
       </div>

@@ -12,6 +12,7 @@ import QuickModal from './components/QuickModal.jsx'
 import EditModal from './components/EditModal.jsx'
 import MonthPicker from './components/MonthPicker.jsx'
 import BaseAssetModal from './components/BaseAssetModal.jsx'
+import BaseListModal from './components/BaseListModal.jsx'
 import Onboarding from './components/Onboarding.jsx'
 import Settings from './components/Settings.jsx'
 import Toast from './components/Toast.jsx'
@@ -31,6 +32,7 @@ export default function App() {
   const [quickOpen, setQuickOpen] = useState(false)
   const [edit, setEdit] = useState(null)
   const [cardEdit, setCardEdit] = useState(null)
+  const [baseListOpen, setBaseListOpen] = useState(false)
   const [monthPickerOpen, setMonthPickerOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [toast, setToast] = useState(null)
@@ -118,7 +120,7 @@ export default function App() {
 
   const saveBase = async (cat, amount) => { await updateBase(cat, amount); setCardEdit(null) }
 
-  const anyModalOpen = quickOpen || !!edit || !!cardEdit || showSettings || monthPickerOpen
+  const anyModalOpen = quickOpen || !!edit || !!cardEdit || baseListOpen || showSettings || monthPickerOpen
 
   return (
     <div className="app">
@@ -127,7 +129,7 @@ export default function App() {
         {tab === 'month' && (
           <MonthDetail d={d} big={big} setBig={setBig} expOwner={expOwner} setExpOwner={setExpOwner}
             collapsed={collapsed} toggleCollapse={toggleCollapse}
-            onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} nav={navSm} names={names} onLoadFixed={onLoadFixed} />
+            onEdit={openEdit} onDelete={onDelete} onAdd={onAddItem} nav={navSm} names={names} onLoadFixed={onLoadFixed} onOpenBase={() => setBaseListOpen(true)} />
         )}
         {tab === 'savings' && <Savings d={d} data={data} monthKey={monthKey} nav={navSm} base={base} onEditCard={setCardEdit} />}
         {tab === 'stats' && <Stats data={data} m={m} monthKey={monthKey} nav={navSm} names={names} />}
@@ -136,8 +138,8 @@ export default function App() {
       {/* settings button (모달 열릴 땐 숨김) */}
       {!anyModalOpen && (
         <div className="press" onClick={() => setShowSettings(true)}
-          style={{ position: 'absolute', top: 'calc(10px + env(safe-area-inset-top))', right: 14, zIndex: 35, width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.7)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(30,50,90,.08)' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="#4E5968" strokeWidth="1.8" /><path d="M19.4 13a1.7 1.7 0 00.4 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.4 1.7 1.7 0 00-1 1.5V19a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.4-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.4-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.4H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.4l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.4 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" stroke="#4E5968" strokeWidth="1.6" /></svg>
+          style={{ position: 'absolute', top: 'calc(10px + env(safe-area-inset-top))', right: 14, zIndex: 35, padding: '7px 13px', borderRadius: 16, background: 'rgba(255,255,255,.8)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', boxShadow: '0 2px 8px rgba(30,50,90,.08)', fontSize: 13, fontWeight: 700, color: '#4E5968' }}>
+          설정
         </div>
       )}
 
@@ -155,6 +157,7 @@ export default function App() {
 
       {quickOpen && <QuickModal onClose={() => setQuickOpen(false)} onSave={saveQuick} names={names} />}
       {edit && <EditModal target={edit} onClose={() => setEdit(null)} onSave={saveEdit} names={names} />}
+      {baseListOpen && <BaseListModal base={base} onPick={(cat) => { setCardEdit({ key: cat, base: base[cat] || 0 }); setBaseListOpen(false) }} onClose={() => setBaseListOpen(false)} />}
       {cardEdit && <BaseAssetModal card={cardEdit} onClose={() => setCardEdit(null)} onSave={saveBase} />}
       {monthPickerOpen && <MonthPicker current={monthKey} onSelect={(k) => { setMonthKey(clampMonth(k)); setMonthPickerOpen(false) }} onClose={() => setMonthPickerOpen(false)} />}
       {showSettings && <Settings mode={mode} household={household} names={names} data={data} onUpdateNames={updateNames} onReset={resetData} onClose={() => setShowSettings(false)} />}

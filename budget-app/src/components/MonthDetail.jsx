@@ -82,7 +82,7 @@ function buildRow(item, big, noPill) {
   return base
 }
 
-export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, collapsed, toggleCollapse, onEdit, onDelete, onAdd, nav, names, onLoadFixed }) {
+export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, collapsed, toggleCollapse, onEdit, onDelete, onAdd, nav, names, onLoadFixed, onOpenBase }) {
   const dispName = (o) => (names && names[o]) || o
   // ---- build owner groups ----
   const mkSections = (sections) => sections.map((sec) => ({
@@ -135,7 +135,7 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 58px 10px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 72px 10px 20px' }}>
         <span style={{ fontSize: 22, fontWeight: 800, color: '#191F28' }}>월별 상세</span>
         {nav}
       </div>
@@ -202,6 +202,9 @@ export default function MonthDetail({ d, big, setBig, expOwner, setExpOwner, col
 
       {big === 'expense' && (
         <div className="press" onClick={onLoadFixed} style={{ margin: '10px 16px 0', background: '#F2F4F6', borderRadius: 14, padding: 14, textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#4E5968' }}>↻ 전월 고정지출 불러오기</div>
+      )}
+      {big === 'savings' && (
+        <div className="press" onClick={onOpenBase} style={{ margin: '10px 16px 0', background: '#F2F4F6', borderRadius: 14, padding: 14, textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#4E5968' }}>💼 기존 자산(시작 잔액) 설정</div>
       )}
       <div style={{ height: 8 }} />
     </div>

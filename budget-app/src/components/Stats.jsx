@@ -31,7 +31,7 @@ export default function Stats({ data, m, monthKey, nav, names }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 58px 10px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 72px 10px 20px' }}>
         <span style={{ fontSize: 22, fontWeight: 800, color: '#191F28' }}>통계</span>
         {nav}
       </div>
