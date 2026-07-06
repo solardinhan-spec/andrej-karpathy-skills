@@ -5,6 +5,8 @@ import { buildSeed } from './seed.js'
 
 const LOCAL_KEY = 'budget:data:v1'
 const NAMES_KEY = 'budget:names'
+const BASE_KEY = 'budget:base'
+const BASE_MONTH = 'base' // savings_cards 재활용: month='base' 행이 카테고리별 시작 잔액
 
 export const emptyMonth = () => ({ income: [], expense: [], savings: [] })
 
@@ -39,6 +41,7 @@ export function useBudget() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [memberNames, setMemberNames] = useState({ m1: '이현', m2: '혜원' })
+  const [base, setBase] = useState({}) // 카테고리별 시작 잔액(현재 보유액)
   const hidRef = useRef(null)
   const inited = useRef(false)
 
@@ -63,6 +66,14 @@ export function useBudget() {
     } catch (_) {}
   }, [])
 
+  // 시작 잔액(현재 보유액) 로드 — savings_cards의 month='base' 행 재활용.
+  const loadBase = useCallback(async (hid) => {
+    try {
+      const r = await supabase.from('savings_cards').select('key,curr').eq('household_id', hid).eq('month', BASE_MONTH)
+      if (!r.error && r.data) { const m = {}; r.data.forEach((x) => { m[x.key] = Number(x.curr) || 0 }); setBase(m) }
+    } catch (_) {}
+  }, [])
+
   const seedCloud = useCallback(async (hid) => {
     const seed = buildSeed()
     const entryRows = []
@@ -80,9 +91,10 @@ export function useBudget() {
     const ch = supabase
       .channel('budget-' + hid)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'entries', filter: `household_id=eq.${hid}` }, () => reloadCloud(hid))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_cards', filter: `household_id=eq.${hid}` }, () => loadBase(hid))
       .subscribe()
     return ch
-  }, [reloadCloud])
+  }, [reloadCloud, loadBase])
 
   // ---------- INIT ----------
   useEffect(() => {
@@ -95,6 +107,7 @@ export function useBudget() {
       try { parsed = JSON.parse(localStorage.getItem(LOCAL_KEY)) } catch (_) {}
       if (!parsed) { parsed = buildSeed(); localStorage.setItem(LOCAL_KEY, JSON.stringify(parsed)) }
       try { const n = JSON.parse(localStorage.getItem(NAMES_KEY)); if (n) setMemberNames(n) } catch (_) {}
+      try { const bs = JSON.parse(localStorage.getItem(BASE_KEY)); if (bs) setBase(bs) } catch (_) {}
       setData(parsed)
       setStatus('ready')
     }
@@ -122,6 +135,7 @@ export function useBudget() {
           hidRef.current = h.id
           setHousehold(h)
           await loadNames(h.id)
+          await loadBase(h.id)
           await reloadCloud(h.id)
           channel = subscribeCloud(h.id)
           setStatus('ready')
@@ -136,7 +150,7 @@ export function useBudget() {
 
     if (mode === 'cloud') initCloud(); else initLocal()
     return () => { if (channel) supabase.removeChannel(channel) }
-  }, [mode, reloadCloud, subscribeCloud, loadNames])
+  }, [mode, reloadCloud, subscribeCloud, loadNames, loadBase])
 
   // ---------- HOUSEHOLD actions (cloud only) ----------
   const createHousehold = useCallback(async (name, withSeed = true) => {
@@ -248,6 +262,25 @@ export function useBudget() {
     setMemberNames({ m1: n1, m2: n2 })
   }, [mode])
 
+  // 시작 잔액(현재 보유액) 설정 — savings_cards month='base' 재활용.
+  const updateBase = useCallback(async (cat, amount) => {
+    const amt = Number(amount) || 0
+    if (mode === 'cloud') {
+      const hid = hidRef.current
+      const { data: existing } = await supabase.from('savings_cards').select('id').eq('household_id', hid).eq('month', BASE_MONTH).eq('key', cat).maybeSingle()
+      if (existing) {
+        const { error: e } = await supabase.from('savings_cards').update({ curr: amt }).eq('id', existing.id)
+        if (e) throw e
+      } else {
+        const { error: e } = await supabase.from('savings_cards').insert({ household_id: hid, month: BASE_MONTH, key: cat, prev: 0, curr: amt })
+        if (e) throw e
+      }
+      await loadBase(hid)
+    } else {
+      setBase((b) => { const next = { ...b, [cat]: amt }; try { localStorage.setItem(BASE_KEY, JSON.stringify(next)) } catch (_) {} return next })
+    }
+  }, [mode, loadBase])
+
   // 전체 데이터 초기화 (수입·지출·저축 전부 삭제).
   const resetData = useCallback(async () => {
     if (mode === 'cloud') {
@@ -263,5 +296,5 @@ export function useBudget() {
 
   const names = { 이현: memberNames.m1, 혜원: memberNames.m2, 기타: '기타', 공동: '공동' }
 
-  return { mode, status, error, household, names, data, createHousehold, joinHousehold, addEntry, addEntries, updateEntry, deleteEntry, updateNames, resetData }
+  return { mode, status, error, household, names, base, data, createHousehold, joinHousehold, addEntry, addEntries, updateEntry, deleteEntry, updateNames, updateBase, resetData }
 }
